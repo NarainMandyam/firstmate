@@ -1,0 +1,33 @@
+mode=check
+path=/Users/kunchen/.pi/agent/bin:/Users/kunchen/.local/libexec/pi-launcher/bin:/Users/kunchen/.nvm/versions/node/v24.14.1/bin:/Users/kunchen/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/kunchen/.local/libexec/pi-launcher/bin:/etc/profiles/per-user/kunchen/bin:/run/current-system/sw/bin:/Users/kunchen/.local/bin:/Users/kunchen/go/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/Users/kunchen/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/libexec/mosh-signed:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/kunchen/.cargo/bin:/Users/kunchen/bin:/usr/local/sbin
+entrypoint=no
+note: not launched through the fixed remote entrypoint; the reported PATH is this caller environment.
+platform=darwin
+required git=/etc/profiles/per-user/kunchen/bin/git
+required jq=/etc/profiles/per-user/kunchen/bin/jq
+required herdr=/etc/profiles/per-user/kunchen/bin/herdr
+required tasks-axi=/Users/kunchen/.nvm/versions/node/v24.14.1/bin/tasks-axi
+required treehouse=/etc/profiles/per-user/kunchen/bin/treehouse
+required harness=claude:/Users/kunchen/.local/bin/claude
+optional tmux=/etc/profiles/per-user/kunchen/bin/tmux
+optional no-mistakes=/Users/kunchen/.local/bin/no-mistakes
+optional gh=/opt/homebrew/bin/gh
+check herdr=ok: /etc/profiles/per-user/kunchen/bin/herdr
+check gui-session=ok: gui/501
+check remote-job-worker=fixable: /Users/kunchen/Library/LaunchAgents/dev.firstmate.remote-job.plist does not match the Firstmate-owned Aqua worker contract
+check remote-job-worker-loaded=fixable: dev.firstmate.remote-job is not loaded in gui/501
+check remote-job-probe=fixable: the remote job worker has not reported a fresh probe
+check launchagent=fixable: no Firstmate herdr launch agent at /Users/kunchen/Library/LaunchAgents/dev.firstmate.herdr.fm-remote.plist
+check launchagent-scope=skip: no launch agent is installed yet
+check launchagent-loaded=fixable: dev.firstmate.herdr.fm-remote is not loaded into gui/501
+check herdr-server=fixable: session fm-remote is served by pid 92247 born outside the Aqua login session (unknown), so its panes cannot reach the login keychain
+check entrypoint-link=skip: this run did not come through the fixed remote entrypoint
+action: remote-job-worker: rerun this command with --fix to write dev.firstmate.remote-job
+action: remote-job-worker-loaded: rerun this command with --fix to bootstrap the worker
+action: remote-job-probe: rerun this command with --fix to restart the worker, then rerun through fm-on.sh
+action: launchagent: rerun this command with --fix to install it
+action: launchagent-loaded: rerun this command with --fix to bootstrap and start it
+action: herdr-server: rerun this command with --fix so the launch agent takes the session over (its current panes close and the parent firstmate relaunches its mates)
+error: this host is not ready for a remote second mate; unresolved: remote-job-worker remote-job-worker-loaded remote-job-probe launchagent launchagent-loaded herdr-server
+
+exit_code=1

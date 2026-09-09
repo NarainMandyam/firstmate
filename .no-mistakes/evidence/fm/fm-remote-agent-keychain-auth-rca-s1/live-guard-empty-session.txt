@@ -1,0 +1,16 @@
+scenario=empty isolated session starts under the real guard
+session=fm-lab-live-89732
+herdr=/etc/profiles/per-user/kunchen/bin/herdr
+fm-remote-herdr-guard: no server owns session fm-lab-live-89732
+fm-remote-herdr-guard: starting the herdr server for session fm-lab-live-89732 inside this launch agent (pid 89738)
+herdr server running; you can use any herdr CLI command in another terminal.
+api socket: .nmh/.config/herdr/sessions/fm-lab-live-89732/herdr.sock
+client socket: .nmh/.config/herdr/sessions/fm-lab-live-89732/herdr-client.sock
+logs: .nmh/.config/herdr/sessions/fm-lab-live-89732/herdr-server.log
+did you mean to open the Herdr TUI? run `herdr`; you do not need `herdr server`.
+guard_pid=89738
+socket=.nmh/.config/herdr/sessions/fm-lab-live-89732/herdr.sock
+socket_owner=89738
+89738 89732 /etc/profiles/per-user/kunchen/bin/herdr server --session fm-lab-live-89732
+guard_exit=0
+result=PASS: guard exec remained the foreground Herdr socket owner and exited after server stop

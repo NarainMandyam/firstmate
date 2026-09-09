@@ -1,0 +1,22 @@
+scenario=real SSH-marked server is stopped and atomically replaced by guard
+session=fm-lab-takeover-45446
+herdr server running; you can use any herdr CLI command in another terminal.
+api socket: .nmh/.config/herdr/sessions/fm-lab-takeover-45446/herdr.sock
+client socket: .nmh/.config/herdr/sessions/fm-lab-takeover-45446/herdr-client.sock
+logs: .nmh/.config/herdr/sessions/fm-lab-takeover-45446/herdr-server.log
+did you mean to open the Herdr TUI? run `herdr`; you do not need `herdr server`.
+foreign_pid=45469
+socket_owner_before=45469
+fm-remote-herdr-guard: session fm-lab-takeover-45446 is served by pid 45469 born outside the Aqua login session (ssh); its panes cannot reach the login keychain, taking the session over
+fm-remote-herdr-guard: session fm-lab-takeover-45446 released its socket after 0 tenths of a second
+fm-remote-herdr-guard: starting the herdr server for session fm-lab-takeover-45446 inside this launch agent (pid 45577)
+herdr server running; you can use any herdr CLI command in another terminal.
+api socket: .nmh/.config/herdr/sessions/fm-lab-takeover-45446/herdr.sock
+client socket: .nmh/.config/herdr/sessions/fm-lab-takeover-45446/herdr-client.sock
+logs: .nmh/.config/herdr/sessions/fm-lab-takeover-45446/herdr-server.log
+did you mean to open the Herdr TUI? run `herdr`; you do not need `herdr server`.
+guard_pid=45577
+socket_owner_after=45577
+foreign_exit=0
+guard_exit=0
+result=PASS: real socket ownership transitioned from SSH-marked pid 45469 to guard-exec pid 45577
