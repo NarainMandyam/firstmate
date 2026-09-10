@@ -495,6 +495,13 @@ $ASK_USER_BLOCK
    the daemon accepts \`respond\` immediately and runs the round in the background, so a killed or
    timed-out call was only waiting for a read while the run kept working.
 
+# Test discipline
+Test the acceptance criteria and load-bearing invariants the task actually names, not every code path you happen to touch along the way.
+Skip smoke tests, redundant regression tests, and a test for a trivial getter/accessor that carries no real logic.
+When the task or a linked plan already names its own specific test list, treat that list as a ceiling, not a floor - do not pad past it.
+Favor a few sharp tests that would actually fail if the behavior broke over many tests that mostly restate the implementation.
+Be especially sparing early in a package's life, when the design is still likely to move and every extra test is one more thing to rewrite later.
+
 $INBOX_SECTION
 
 # Project memory
