@@ -1,0 +1,7 @@
+=== Real tmux retained-refusal validation ===
+tmux: tmux 3.6a
+exit_code: 1
+output: warning: /tmp/fm-tmux-live.aLBUX8/home/data/tmxlive/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task tmxlive's endpoint is in '/private/tmp/fm-tmux-live.aLBUX8/proj', not its recorded worktree '/tmp/fm-tmux-live.aLBUX8/wt'; refusing to relaunch an agent outside the copy holding its work
+pane_cwd_after: /private/tmp/fm-tmux-live.aLBUX8/proj
+unexpected_launch_marker: absent

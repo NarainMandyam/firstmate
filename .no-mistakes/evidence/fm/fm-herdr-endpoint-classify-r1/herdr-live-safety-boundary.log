@@ -1,0 +1,3 @@
+=== Real Herdr absent-session safety boundary ===
+herdr: herdr 0.9.0
+session=fm-lab-husk-absent-47535 recovery_state=missing destructive_presence=unknown husk=refused
