@@ -1,0 +1,4 @@
+close_rc=0
+events:
+close target=wA:pA while-live-focus=wB:tB; simulated-post-close-focus=wC:tC
+RESULT=FAIL live non-target focus was not restored after close

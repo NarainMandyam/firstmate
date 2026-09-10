@@ -1,0 +1,5 @@
+session=fm-lab-liveviewer-47264-23350
+target_tab=w2:t1
+target_pane=w2:p1
+foreground_probe=no_foreground_client
+FAIL: pseudo-terminal Herdr client did not become foreground

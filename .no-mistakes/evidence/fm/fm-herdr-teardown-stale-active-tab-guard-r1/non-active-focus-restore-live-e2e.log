@@ -1,0 +1,6 @@
+before_focus=w1:t1
+close_rc=0
+close_output=
+after_focus=w1:t1
+target_pane_present=no
+RESULT=PASS non-active target closed with focus preserved
