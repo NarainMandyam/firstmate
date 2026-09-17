@@ -407,6 +407,8 @@ The report is the only thing that survives, so anything worth keeping must be in
    going. A drive-call error, timeout, slow read, or generic unreachability is NOT a daemon error:
    the daemon accepts \`respond\` immediately and runs the round in the background, so a killed or
    timed-out call was only waiting for a read while the run kept working.
+8. Commit meaningful increments as you go; never leave a completed unit of work uncommitted while you move on or wait on anything - an uncommitted change is the only copy, and an interrupted worker loses it.
+9. Run builds and test suites in the foreground, or poll with a bounded command that returns on its own; never background a long command and sit waiting for a completion notification, and never fill turns with no-op waits like \`true\`, \`jobs\`, or \`echo "still waiting"\`. If a command genuinely takes longer than one turn, say so in a status line instead of idling.
 
 $INBOX_SECTION
 
@@ -498,6 +500,8 @@ $ASK_USER_BLOCK
    going. A drive-call error, timeout, slow read, or generic unreachability is NOT a daemon error:
    the daemon accepts \`respond\` immediately and runs the round in the background, so a killed or
    timed-out call was only waiting for a read while the run kept working.
+8. Commit meaningful increments as you go; never leave a completed unit of work uncommitted while you move on or wait on anything - an uncommitted change is the only copy, and an interrupted worker loses it.
+9. Run builds and test suites in the foreground, or poll with a bounded command that returns on its own; never background a long command and sit waiting for a completion notification, and never fill turns with no-op waits like \`true\`, \`jobs\`, or \`echo "still waiting"\`. If a command genuinely takes longer than one turn, say so in a status line instead of idling.
 
 # Test discipline
 Test the acceptance criteria and load-bearing invariants the task actually names, not every code path you happen to touch along the way.

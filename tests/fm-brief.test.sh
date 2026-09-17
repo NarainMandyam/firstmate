@@ -858,6 +858,42 @@ test_scout_and_secondmate_load_decision_hold_policy() {
   pass "fm-brief.sh: investigation and visual-review completions load the shared decision policy"
 }
 
+# Regression: two recurring fleet failures (hours of uncommitted work lost to
+# a sleeping Mac, and workers parking on backgrounded build/test monitors)
+# traced to the scaffold never stating either rule. Both must land in both
+# heredocs (scout and ship are separate blocks in fm-brief.sh) or half the
+# fleet silently misses the rule.
+test_commit_early_and_no_background_monitors_rules() {
+  local home id brief
+  home="$TMP_ROOT/commit-early-no-bg-home"
+  mkdir -p "$home/data"
+
+  id="brief-commit-early-ship"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+  brief="$home/data/$id/brief.md"
+  assert_present "$brief" "ship brief was not scaffolded"
+  assert_grep "never leave a completed unit of work uncommitted" "$brief" \
+    "ship brief missing the commit-early rule"
+  assert_grep "an uncommitted change is the only copy, and an interrupted worker loses it" "$brief" \
+    "ship brief missing the commit-early rationale"
+  assert_grep "never background a long command and sit waiting for a completion notification" "$brief" \
+    "ship brief missing the no-backgrounded-monitors rule"
+  # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+  assert_grep 'no-op waits like `true`, `jobs`, or `echo "still waiting"`' "$brief" \
+    "ship brief missing the no-op-wait examples"
+
+  id="brief-commit-early-scout"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
+  brief="$home/data/$id/brief.md"
+  assert_present "$brief" "scout brief was not scaffolded"
+  assert_grep "never leave a completed unit of work uncommitted" "$brief" \
+    "scout brief missing the commit-early rule"
+  assert_grep "never background a long command and sit waiting for a completion notification" "$brief" \
+    "scout brief missing the no-backgrounded-monitors rule"
+
+  pass "fm-brief.sh: commit-early and no-backgrounded-monitors rules render in both ship and scout briefs"
+}
+
 # Scout and secondmate paths still scaffold well-formed briefs.
 test_scout_and_secondmate_scaffold() {
   local brief
@@ -922,6 +958,7 @@ test_no_mistakes_dod_wording
 test_ask_user_escalation_format
 test_ship_project_memory_wording
 test_ship_test_discipline_section
+test_commit_early_and_no_background_monitors_rules
 test_herdr_lab_contract_is_explicit_and_complete
 test_herdr_lab_contract_quotes_foreign_firstmate_path
 test_herdr_lab_omission_is_loud_for_ship_and_scout
