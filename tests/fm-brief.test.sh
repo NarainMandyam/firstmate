@@ -894,6 +894,56 @@ test_commit_early_and_no_background_monitors_rules() {
   pass "fm-brief.sh: commit-early and no-backgrounded-monitors rules render in both ship and scout briefs"
 }
 
+# Rule 8's temporary-edit extension and rule 10's process-safety rule must reach
+# both ship and scout scaffolds.
+test_temp_edit_and_process_kill_rules() {
+  local home id brief kind
+  home="$TMP_ROOT/temp-edit-process-home"
+  mkdir -p "$home/data"
+  for kind in ship scout; do
+    id="brief-temp-edit-$kind"
+    if [ "$kind" = ship ]; then
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+    else
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
+    fi
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$kind brief was not scaffolded"
+    # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+    assert_grep 'Never `git checkout` or `git restore` a file that holds uncommitted work' "$brief" \
+      "$kind brief missing the no-checkout-over-uncommitted-work rule"
+    assert_grep "commit the file or copy it aside" "$brief" \
+      "$kind brief missing the copy-before-temporary-edit rule"
+    # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+    assert_grep 'Never `pkill` or `killall` by name or pattern' "$brief" \
+      "$kind brief missing the no-pkill-by-pattern rule"
+    assert_grep "give each dev server its own port" "$brief" \
+      "$kind brief missing the own-port rule"
+  done
+  pass "fm-brief.sh: temporary-edit and no-pkill rules render in both ship and scout briefs"
+}
+
+# The scout report header convention feeds supersession tracking and the
+# learnings-promotion queue, and the ship project-memory clause steers area files.
+test_scout_report_header_and_topic_memory() {
+  local home brief
+  home="$TMP_ROOT/report-header-home"
+  mkdir -p "$home/data"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-header-scout some-proj --scout >/dev/null 2>&1
+  brief="$home/data/brief-header-scout/brief.md"
+  assert_grep "superseded-by <id>" "$brief" "scout brief missing the report Status convention"
+  # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+  assert_grep 'end it with a `Durable learnings` list of 0-3 bullets' "$brief" \
+    "scout brief missing the Durable learnings list"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-header-ship some-proj --mode no-mistakes >/dev/null 2>&1
+  brief="$home/data/brief-header-ship/brief.md"
+  assert_grep "never add a section named after a package, wave, task, or branch" "$brief" \
+    "ship brief missing the topic-not-chronology project-memory rule"
+  assert_grep "fm-ensure-agents-md.sh <area-dir>" "$brief" \
+    "ship brief missing the nearest-area AGENTS.md pointer"
+  pass "fm-brief.sh: scout report header and topic-organized project memory render"
+}
+
 # Scout and secondmate paths still scaffold well-formed briefs.
 test_scout_and_secondmate_scaffold() {
   local brief
@@ -959,6 +1009,8 @@ test_ask_user_escalation_format
 test_ship_project_memory_wording
 test_ship_test_discipline_section
 test_commit_early_and_no_background_monitors_rules
+test_temp_edit_and_process_kill_rules
+test_scout_report_header_and_topic_memory
 test_herdr_lab_contract_is_explicit_and_complete
 test_herdr_lab_contract_quotes_foreign_firstmate_path
 test_herdr_lab_omission_is_loud_for_ship_and_scout

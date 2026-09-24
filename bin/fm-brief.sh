@@ -62,8 +62,12 @@
 # Ship tasks include a project-memory section so durable project-intrinsic
 # learnings can be committed to AGENTS.md through the project's delivery path;
 # it carries the AGENTS.md authoring bar (widely useful knowledge only, pointers
-# over copied detail) and defers self-governance recognition and insertion to
-# fm-ensure-agents-md.sh's contract.
+# over copied detail, topic-organized into the nearest area AGENTS.md rather than
+# sections named after a package, wave, or branch) and defers self-governance
+# recognition and insertion to fm-ensure-agents-md.sh's contract.
+# Scout scaffolds ask the report to open with Status/Date/Inputs/Supersedes lines
+# and end with a Durable learnings list naming each proposed owner, which is
+# firstmate's feed for promoting learnings into shared skills and scripts.
 # Ship tasks also carry a standing test-discipline section: test only the named
 # acceptance criteria and load-bearing invariants, skip smoke/redundant/trivial
 # tests, and stay especially sparing early in a package's life. Scout scaffolds
@@ -408,13 +412,17 @@ The report is the only thing that survives, so anything worth keeping must be in
    the daemon accepts \`respond\` immediately and runs the round in the background, so a killed or
    timed-out call was only waiting for a read while the run kept working.
 8. Commit meaningful increments as you go; never leave a completed unit of work uncommitted while you move on or wait on anything - an uncommitted change is the only copy, and an interrupted worker loses it.
+   Before any temporary edit (debug logging, a formatter run), commit the file or copy it aside, and undo the edit by restoring from that commit or copy.
+   Never \`git checkout\` or \`git restore\` a file that holds uncommitted work: it silently wipes every real change in it, so diff first.
 9. Run builds and test suites in the foreground, or poll with a bounded command that returns on its own; never background a long command and sit waiting for a completion notification, and never fill turns with no-op waits like \`true\`, \`jobs\`, or \`echo "still waiting"\`. If a command genuinely takes longer than one turn, say so in a status line instead of idling.
+10. Never \`pkill\` or \`killall\` by name or pattern - it matches every worker on the machine whose command line mentions the name. Stop only the exact process ids you started, and give each dev server its own port.
 
 $INBOX_SECTION
 
 # Definition of done
 Write your findings to \`$DATA/$ID/report.md\`.
 The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Open it with \`Status\` (\`current\` or \`superseded-by <id>\`), \`Date\`, \`Inputs\`, and \`Supersedes\` lines, and end it with a \`Durable learnings\` list of 0-3 bullets, each naming the skill or script that should own it.
 If your deliverable is a visual artifact the captain will review and iterate on, you may host the Lavish review loop yourself (poll, revise, re-serve, staying alive) instead of handing it back to firstmate.
 Before reporting done, read and follow \`$FM_ROOT/.agents/skills/captain-hold-lifecycle/SKILL.md\` and pass its shared completion gate for the report and any visual review.
 When the report is complete, append \`done: {one-line conclusion}\` to the status file and stop.
@@ -501,7 +509,10 @@ $ASK_USER_BLOCK
    the daemon accepts \`respond\` immediately and runs the round in the background, so a killed or
    timed-out call was only waiting for a read while the run kept working.
 8. Commit meaningful increments as you go; never leave a completed unit of work uncommitted while you move on or wait on anything - an uncommitted change is the only copy, and an interrupted worker loses it.
+   Before any temporary edit (debug logging, a formatter run), commit the file or copy it aside, and undo the edit by restoring from that commit or copy.
+   Never \`git checkout\` or \`git restore\` a file that holds uncommitted work: it silently wipes every real change in it, so diff first.
 9. Run builds and test suites in the foreground, or poll with a bounded command that returns on its own; never background a long command and sit waiting for a completion notification, and never fill turns with no-op waits like \`true\`, \`jobs\`, or \`echo "still waiting"\`. If a command genuinely takes longer than one turn, say so in a status line instead of idling.
+10. Never \`pkill\` or \`killall\` by name or pattern - it matches every worker on the machine whose command line mentions the name. Stop only the exact process ids you started, and give each dev server its own port.
 
 # Test discipline
 Test the acceptance criteria and load-bearing invariants the task actually names, not every code path you happen to touch along the way.
@@ -515,7 +526,8 @@ $INBOX_SECTION
 # Project memory
 If \`AGENTS.md\` or \`CLAUDE.md\` already exists, or if this task produced durable project-intrinsic knowledge, run \`$FM_ROOT/bin/fm-ensure-agents-md.sh .\` in the worktree.
 Record only project knowledge useful to almost every future session.
-For anything the codebase already shows, prefer a pointer to the authoritative file, command, or doc over copying the detail.
+For anything the codebase already shows, prefer a pointer to the authoritative file, command, or doc over copying the detail, and never restate what a code comment already says.
+Write it by topic into the nearest area \`AGENTS.md\`, creating one with \`$FM_ROOT/bin/fm-ensure-agents-md.sh <area-dir>\` when the area has none, and never add a section named after a package, wave, task, or branch.
 If you touch a project \`AGENTS.md\`, follow \`$FM_ROOT/bin/fm-ensure-agents-md.sh\`'s self-governance contract in the same pass.
 Keep it proportionate: skip \`AGENTS.md\` edits for trivial tasks that produced no durable project knowledge.
 

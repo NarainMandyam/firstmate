@@ -46,6 +46,20 @@ A single deliberate one-line reinforcement at a genuine risk point is allowed, f
 Restating the contract's substance a second time is not allowed: the two copies will drift the moment only one is edited.
 When you touch a contract, patch, replace, or prune the owner's existing language rather than appending a new clause or paragraph wherever possible, then grep the repo for its other mentions and update the cross-references, not duplicate the change into a second full copy.
 
+Supersession is two-way.
+When a new owner replaces or amends an existing contract, mark the old owner with a one-line `Superseded by` or `Amended by` pointer in the same change, because a one-way link leaves the old page lying by omission.
+
+## Topic over chronology
+
+Always-loaded and skill text states current invariants by topic.
+Delivery chronology - waves, packages, branches, PR numbers - stays in reports and git history, never in a section named after the event that produced it.
+
+## Absorbing a learning
+
+To promote a `data/learnings.md` entry into shared material, patch the owning skill's or script's existing language under the one-owner rule rather than appending a parallel clause.
+Phrase it as general guidance, not the home's anecdote, and cite the learning's date in the commit message.
+The shared change never edits `data/`; after it lands, the home archives the learning with the reason `promoted to <owner>`.
+
 ## Inline-stub pattern
 
 When content moves out of `AGENTS.md` into a skill, decide what stays behind by asking one question: what must survive with no skill loaded?
@@ -61,6 +75,7 @@ Apply the decision tree above to every line you are about to add to `AGENTS.md`.
 If an addition needs more than a few lines of conditional detail (detail that matters only in a specific situation) or reference detail (a wire format, an exact schema, historical rationale), you are almost certainly adding it to the wrong file.
 `AGENTS.md`'s token cost is paid by every session of every fleet member, every time, whether or not that session ever hits the situation the new lines describe.
 A skill's cost is paid only by the sessions that actually load it.
+Keep a `SKILL.md` under about 500 lines and move depth into `references/` one level deep with a table of contents.
 When in doubt, write the fact into the skill or doc first by patching that owner's existing language, and add only the one-line trigger to `AGENTS.md`.
 
 ## Trigger hygiene

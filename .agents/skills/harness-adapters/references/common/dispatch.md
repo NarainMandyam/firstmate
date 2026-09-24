@@ -23,6 +23,12 @@ Natural-language rules stay with firstmate, while scripts receive concrete axes.
 Composer shapes, glyphs, placeholders, popups, rendered delivery signals, and the `empty` / `pending` / `pending-unproven` / `unknown` decision belong only to `../../../bin/fm-composer-lib.sh`.
 Tool references record empirical knowledge for those executable owners.
 
+## Confirming a start
+
+A zero exit from `../../../bin/fm-spawn.sh` does not mean a worker started.
+A quota or limit rejection can arrive after the spawn returns, and a limit banner in the pane may be stale scrollback rather than current state.
+Confirm a first status line or observed activity, and when the pane is ambiguous probe with one instruction instead of trusting or dismissing the banner.
+
 ## Adapter verification
 
 For an approved new adapter check, use the spawn owner's raw-launch escape hatch only for a trivial supervised task.
