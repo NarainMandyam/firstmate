@@ -1,6 +1,6 @@
 ---
 name: stow
-description: Sweep the current session for uncaptured durable knowledge, file it to disk, persist the open work records this session knows are unfiled or now wrong, and curate the home's tiered, decaying startup memory before a context reset. Use when the captain invokes /stow (e.g. "/stow", "stow what you've learned"), before a session reset or context compaction, or periodically to keep operational memory current.
+description: Sweep the current session for uncaptured durable knowledge, file it to disk, persist the open work records this session knows are unfiled or now wrong, nominate skill-shaped learnings for promotion into the shared skills, and curate the home's tiered, decaying startup memory before a context reset. Use when the captain invokes /stow (e.g. "/stow", "stow what you've learned"), before a session reset or context compaction, or periodically to keep operational memory current.
 user-invocable: true
 metadata:
   internal: true
@@ -93,6 +93,7 @@ Every `/stow` invocation performs this complete pass, even when the session cont
    Keep in always-loaded memory only current captain preferences, authority and safety boundaries, recurring working style, fleet-wide or frequently relevant operating facts, and concise pointers that are expensive to rediscover.
    Prefer offloading current but conditional, narrow, project-specific, or context-specific material to a live on-demand owner, and archive stale, superseded, or low-recurrence material to the cold tier.
    Retain lower-utility material only while budget remains.
+   While planning, nominate each `data/learnings.md` entry that passes the nomination test under "Promotion queue" below; nomination changes nothing about the entry's tier, clock, or retention.
 4. Reinforce and stamp.
    Refresh an entry's last-reinforced date to today only when this session actually exercised, confirmed, or re-derived it.
    Where the optional pass horizon is enabled, refreshing that date also clears the entry's unreinforced-pass counter, and nothing else clears it.
@@ -109,6 +110,7 @@ Every `/stow` invocation performs this complete pass, even when the session cont
    Prefer one concise current rule or authoritative pointer over duplicate prose.
    Archive completed incident and release chronology, stale versions and paths, transient task state, resolved alternatives, old metrics, and report-sized procedures; merge or remove only superseded claims and duplicates whose facts are preserved elsewhere.
    Never plainly remove a unique current fact: every such exit must archive it with provenance in the recoverable cold tier or relocate it to a live JIT owner or a consolidation merge that preserves the fact.
+   Archive each learning a tracked skill or `bin/` script now holds with the reason `promoted to <owner>`, under "Promotion queue" below.
 7. When the total is still over budget after decay and consolidation, make aggressive reduction the default, using editable files only and in this order: archive every editable stale, superseded, or low-utility entry that is eligible for archival; consolidate tighter; run the over-budget offload sweep below and autonomously relocate every eligible non-pinned conditional entry into an already-existing allowed owner only after that owner holds it; then, only when the convergence precondition below holds, archive eligible `aging` entries oldest-reinforced-first until within budget.
    A proposal, a future migration, or an accepted exception is never budget relief in this pass.
    Budget eviction considers only editable `aging` entries that carry a last-reinforced date and are not pending offload; a `<!--g-->` legacy-grace entry is ineligible until its grace cycle resolves, so eviction can neither cancel a promised grace cycle nor prefer just-validated entries over unvalidated ones.
@@ -141,7 +143,7 @@ Archive provenance stays verbose rather than compact because the cold tier is ne
 - (from learnings.md, tier: perishable, reinforced: 2026-06-30) While state/.afk exists, the away-daemon owns triage... [archived: unreinforced 39d]
 ```
 
-Reasons include `unreinforced <N>d`, `unreinforced <N>p`, `budget oldest-first`, and `legacy-unvalidated`.
+Reasons include `unreinforced <N>d`, `unreinforced <N>p`, `budget oldest-first`, `legacy-unvalidated`, and `promoted to <owner>`.
 Archiving is a move, not a removal, and recovery is `grep` plus copy back with no tooling.
 Each home keeps its own archive, the archive never cascades, and truncating a grown archive is a captain decision, not a mechanism.
 
@@ -169,7 +171,7 @@ Every test must hold for a candidate:
 ### Destinations
 
 **Hard rule: the stow process never creates or writes a firstmate-repo-tracked skill.**
-**Every skill stow's offload produces for a Firstmate home is user-owned and local, excluded through that active home's repository-local exclude file resolved with `git -C "$home_root" rev-parse --git-path info/exclude`; contributing a lesson to the shared tracked template is a separate deliberate captain action, never automatic.**
+**Every skill stow's offload produces for a Firstmate home is user-owned and local, excluded through that active home's repository-local exclude file resolved with `git -C "$home_root" rev-parse --git-path info/exclude`; contributing a lesson to the shared tracked template is a separate reviewed task landed under the firstmate repo's merge authority, reached through the promotion queue below, never automatic.**
 Approved project-level destinations are not produced by stow: they ship normally through that project's own registered delivery path.
 
 - A user-owned local skill: a directory under `.agents/skills/<freeform-name>/` whose path is appended to the active home clone's repository-local exclude file, never to a `.gitignore`.
@@ -212,6 +214,7 @@ A local skill exists only in this home, so offloading an entry out of `data/capt
 
 1. **Sweep the session for uncaptured durable knowledge.**
    Look for operational learnings, captain preferences expressed in passing, project-intrinsic facts, standing decisions, and undone next steps.
+   Include the lessons workers reported that this session read: each bullet of a scout report's `Durable learnings` list and any lesson in a worker's done or status note.
 2. **Route each finding using AGENTS.md's knowledge-routing table.**
    AGENTS.md section 6 is the source of truth for destinations.
    Do not re-derive or duplicate that mapping here.
@@ -222,16 +225,66 @@ A local skill exists only in this home, so offloading an entry out of `data/capt
      In a secondmate home, route a newly discovered shared preference to the main firstmate through marked status or a document pointer instead of editing the inherited file.
    - Project-intrinsic knowledge never goes directly into a project's `AGENTS.md`.
      Route it through a normal ship task so a crewmate records it with `bin/fm-ensure-agents-md.sh` and the project's delivery path.
-   - Knowledge general to every Firstmate user belongs in this repo's shared tracked material through the normal branch, no-mistakes, PR, and captain-merge path.
+   - Knowledge general to every Firstmate user belongs in this repo's shared tracked material, and reaches it only by nomination into the promotion queue below, never by an edit in this pass.
    - For task-scoped notes, inspect the item with `tasks-axi show <id> --full`, classify the change as new, duplicate, superseding, or obsolete, then use a considered replacement body through `tasks-axi update <id> --body-file <path>`.
      Use `--archive-body` when recoverability matters.
      Never append.
    - File each undone next step as a queued backlog item with a genuine `blocked-by` dependency when applicable.
 4. **Use inspect-then-update.**
    For every retained fact, ask which current statement it supersedes, whether it can be a one-sentence rewrite, and whether a stale entry should be refreshed, archived, or routed to an existing stronger owner.
-   The only graduation moves are promotion to tracked shared material through a PR, folding a learning into the captain-preference destination selected by AGENTS.md, archiving a stale entry to `data/memory-archive.md`, autonomous offload of an eligible non-pinned conditional entry to an already-existing allowed owner through the reduce flow above, captain-approved offload of a pinned durable conditional entry to a JIT-loaded owner executed through the migration step above, or deletion of an entry that is a duplicate or already preserved through a stronger existing owner.
+   The only graduation moves are promotion to tracked shared material through the promotion queue below, folding a learning into the captain-preference destination selected by AGENTS.md, archiving a stale entry to `data/memory-archive.md`, autonomous offload of an eligible non-pinned conditional entry to an already-existing allowed owner through the reduce flow above, captain-approved offload of a pinned durable conditional entry to a JIT-loaded owner executed through the migration step above, or deletion of an entry that is a duplicate or already preserved through a stronger existing owner.
    A stale unique fact is never deleted, only archived.
    Do not invent another graduation path.
+
+## Promotion queue
+
+`data/learnings.md` is a hot cache: cheap to write, budgeted, and decaying.
+A learning that a tracked skill or `bin/` script would have delivered at the moment it mattered belongs in that owner, where every Firstmate home gets it on trigger instead of paying for it in startup memory.
+This section owns the queue that carries such learnings from memory to their owner.
+The promoting worker's procedure is owned by `firstmate-coding-guidelines` "Absorbing a learning", and the stow pass never edits the owner itself.
+
+### Nominate
+
+Nominate a learning only when every test holds:
+
+- Placement: a named tracked skill or `bin/` script, loaded at that moment, would have prevented the mistake or supplied the fact; name `new skill?` only when no existing owner's trigger fires at that moment.
+- General: it holds for every Firstmate user, not only this home's machine, projects, or captain; a home-specific fact stays in memory and a project fact routes to that project.
+- Current: not stale, not superseded, and not already held by the owner, which step 6 of the pass handles instead.
+- New: its first line matches no line in the open queue item or in a Done promotion item in the backlog or its done archive.
+
+Sources are every `data/learnings.md` entry the pass plans (step 3), each new sweep finding, and each worker-reported lesson the sweep found.
+A worker lesson nominated straight from its report needs no memory entry unless sessions need it before the promotion lands.
+
+Nominating writes only the backlog: read the open queue item with `tasks-axi show <id> --full`, merge each nomination into its body (a new line, or a rewrite of the line it restates), and write it back with `tasks-axi update <id> --body-file <path>`.
+The memory entry stays where it is under its own tier and clock.
+Because the queue line quotes it, decay, eviction, or offload of that entry never loses the nomination.
+In a secondmate home, keep no queue: route each nomination to the main firstmate through marked status, and the primary files it.
+
+### Queue item
+
+There is at most one open queue: the Queued backlog item `fm-skill-promotions-<YYYY-MM-DD>`, dated on creation, added with `tasks-axi add <id> "Promote queued learnings into shared skills" --kind ship --repo firstmate` when a nomination finds none Queued.
+Its body holds one line per nomination:
+
+```markdown
+- <entry text verbatim, marker dropped> -> <owner path | new skill?> (from <learnings.md reinforced YYYY-MM-DD | report <task-id> | status <task-id>>; nominated YYYY-MM-DD)
+```
+
+An item already In flight or Done is a batch and is never reopened; a nomination made meanwhile starts the next item.
+
+### Batch trigger and dispatch
+
+The queue is ready when it holds 3 or more nominations, when its oldest nomination has waited 14 days, or when the captain asks; every pass checks this and reports it in the receipt.
+The pass never spawns.
+A ready queue is ordinary queued work that firstmate dispatches through normal intake after the pass or at the next queued-work re-evaluation, using the queue item itself as the task's work item.
+Its brief quotes every line as the task, requires `firstmate-coding-guidelines` and its "Absorbing a learning" procedure, and uses the firstmate repo's resolved delivery mode and merge authority.
+The merge authority's landing approval is each batch's authorization, so no standing authority is added and the hard rule under "Destinations" is unchanged.
+
+### Outcome and eviction
+
+After the batch lands and before recording completion, copy each line's outcome from the worker's done note into the item body as a trailing bracket, such as `[promoted to <owner>]`, `[already held by <owner>]`, or `[declined: <reason>]`, through the same inspect-then-update.
+The next pass archives, in step 6, each learning whose owner on this home's code root now holds the guidance, with the reason `promoted to <owner>`; read the owner to confirm, and keep the entry for the next pass when it does not yet.
+That check needs no queue line, so it also evicts a learning a hand-made change promoted, and in a secondmate home it runs once the fleet update brings the owner's change.
+A declined learning keeps its ordinary tier and clock, and the recorded decline stops re-nomination until the entry is materially rewritten.
 
 ## Open-record persistence
 
@@ -265,6 +318,7 @@ Report the outcome in plain captain-facing language with all of these facts:
 - each archived entry's reason, each autonomous offload's live destination and actual relief, and, when a pinned candidate was proposed, the `proposed-offload` section with every candidate's fields;
 - every unresolved exception, including a primary-owned shared-file constraint in a secondmate home, and every concrete captain decision opened for an over-budget result;
 - each open record this pass filed or corrected, and each one it deliberately left alone with the judgment it is waiting on;
+- each learning nominated with its proposed owner, the open queue's size and whether it is ready for dispatch, and each learning archived as promoted;
 - whether the session is safe to reset, only when all durable findings are captured, every open record this session held is filed or explicitly left with its reason, and the post-pass result is within budget with no exception or pending budget decision.
 
 State what reset-safe means in the same breath as the claim: nothing this session knew has been lost.
@@ -305,5 +359,5 @@ The session is reset-safe only when every home is within its own budget with no 
 The stow pass itself must never store, create, or edit a skill as a destination for any finding.
 The exclusion binds the pass as a writer: proposing an offload and letting the migration step execute a captain-approved candidate later is not the pass storing a skill.
 Every Firstmate-home skill that migration produces is user-owned and local under the destinations hard rule, while an approved project-level destination is produced and shipped through that project's registered delivery path, never by stow.
-Changing firstmate's tracked `.agents/skills/` or public `skills/` remains a deliberately scoped Firstmate repository task through its pipeline, never a stow product.
+Changing firstmate's tracked `.agents/skills/` or public `skills/` remains a deliberately scoped Firstmate repository task through its delivery path, never a stow product; the promotion queue only nominates work for such a task.
 Outside a captain-approved offload, generalizable knowledge still routes to shared tracked material through its pipeline and fleet-local knowledge to `data/`.
