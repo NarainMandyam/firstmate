@@ -23,6 +23,11 @@
 # filesystem (issue #389). The real-file pointer also eliminates the old
 # uppercase-literal-target dangling-symlink hazard that a CLAUDE.md -> AGENTS.md
 # link would have carried for that same mismatch.
+# After any successful run it prints a non-blocking size warning to stderr when
+# AGENTS.md exceeds AGENTS_MD_MAX_LINES lines, pointing the author at nested
+# area AGENTS.md files; the warning is detect-only and never changes the exit
+# status or the files. Run it on an area directory to create that area's own
+# AGENTS.md and CLAUDE.md pointer.
 # This is a worktree utility for crewmates, not a supervision script, so it does
 # not call fm-guard.sh.
 # Usage: fm-ensure-agents-md.sh [repo-or-worktree-dir]
@@ -55,6 +60,21 @@ cd "$DIR"
 
 AGENTS=AGENTS.md
 CLAUDE=CLAUDE.md
+AGENTS_MD_MAX_LINES=250
+
+# Detect-only size ceiling, run on every successful exit so no branch below has
+# to remember it. It reports and never fails the helper or edits a file.
+warn_if_oversized() {
+  local status=$? lines
+  [ "$status" -eq 0 ] || return 0
+  [ -f "$AGENTS" ] && [ ! -L "$AGENTS" ] || return 0
+  lines=$(wc -l < "$AGENTS" | tr -d ' ')
+  if [ "$lines" -gt "$AGENTS_MD_MAX_LINES" ]; then
+    echo "warning: AGENTS.md in $DIR is $lines lines (ceiling $AGENTS_MD_MAX_LINES); move area-specific knowledge into that directory's own AGENTS.md and organize by topic" >&2
+  fi
+  return 0
+}
+trap warn_if_oversized EXIT
 
 write_maintenance_section() {
   cat <<'EOF'
@@ -63,6 +83,8 @@ write_maintenance_section() {
 Keep this file for knowledge useful to almost every future agent session in this project.
 Do not repeat what the codebase already shows; point to the authoritative file or command instead.
 Prefer rewriting or pruning existing entries over appending new ones.
+Keep this root file under about 200 lines: put area-specific knowledge in that directory's own `AGENTS.md`.
+Organize by topic, never by the task that discovered it.
 When updating this file, preserve this bar for all agents and keep entries concise.
 EOF
 }

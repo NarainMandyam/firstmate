@@ -46,6 +46,26 @@ A single deliberate one-line reinforcement at a genuine risk point is allowed, f
 Restating the contract's substance a second time is not allowed: the two copies will drift the moment only one is edited.
 When you touch a contract, patch, replace, or prune the owner's existing language rather than appending a new clause or paragraph wherever possible, then grep the repo for its other mentions and update the cross-references, not duplicate the change into a second full copy.
 
+Supersession is two-way.
+When a new owner replaces or amends an existing contract, mark the old owner with a one-line `Superseded by` or `Amended by` pointer in the same change, because a one-way link leaves the old page lying by omission.
+
+## Topic over chronology
+
+Always-loaded and skill text states current invariants by topic.
+Delivery chronology - waves, packages, branches, PR numbers - stays in reports and git history, never in a section named after the event that produced it.
+
+## Absorbing a learning
+
+This is the procedure a promotion batch follows for each learning the `stow` skill's "Promotion queue" nominated, and any hand-made promotion follows it too.
+Treat the nominated owner as a proposal, and place each learning by one test: would that skill or script, loaded at that moment, have prevented this?
+Choose the owner whose trigger actually fires at the moment the mistake happens, which may not be the nominated one.
+Decline a learning when no owner's trigger fires then, when it holds only for one home's machine, projects, or captain, or when it describes an upstream tool, which is that tool's issue to fix.
+Create a new skill only when several learnings share one nameable situation that no existing skill's trigger covers, and give it an `AGENTS.md` section 13 trigger under "Trigger hygiene"; otherwise extend an existing owner.
+Patch the owner's existing language under the one-owner rule rather than appending a parallel clause, and phrase it as general guidance by topic, never as the home's anecdote.
+A `bin/` change ships with a colocated behavioral test and a clean `bin/fm-lint.sh`, like any other script change.
+Cite each promoted learning's date in the commit message, and end the done note with one outcome per queued line: `promoted to <owner>`, `already held by <owner>`, or `declined: <reason>`.
+The shared change never edits `data/`; after it lands, firstmate records those outcomes and the next `/stow` archives each promoted learning with the reason `promoted to <owner>`.
+
 ## Inline-stub pattern
 
 When content moves out of `AGENTS.md` into a skill, decide what stays behind by asking one question: what must survive with no skill loaded?
@@ -61,6 +81,7 @@ Apply the decision tree above to every line you are about to add to `AGENTS.md`.
 If an addition needs more than a few lines of conditional detail (detail that matters only in a specific situation) or reference detail (a wire format, an exact schema, historical rationale), you are almost certainly adding it to the wrong file.
 `AGENTS.md`'s token cost is paid by every session of every fleet member, every time, whether or not that session ever hits the situation the new lines describe.
 A skill's cost is paid only by the sessions that actually load it.
+Keep a `SKILL.md` under about 500 lines and move depth into `references/` one level deep with a table of contents.
 When in doubt, write the fact into the skill or doc first by patching that owner's existing language, and add only the one-line trigger to `AGENTS.md`.
 
 ## Trigger hygiene

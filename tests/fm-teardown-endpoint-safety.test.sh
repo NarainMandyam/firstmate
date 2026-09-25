@@ -67,6 +67,17 @@ assert_refused_without_mutation() {  # <case> <id> <description>
   [ ! -s "$dir/runtime.log" ] || fail "$description: runtime command ran before refusal: $(cat "$dir/runtime.log")"
 }
 
+# assert_no_destructive_runtime_calls: a collision refusal now reads the
+# OTHER task's own recorded endpoint (fm_backend_agent_state) to name its
+# live/dead state in the message, so the runtime log is no longer expected to
+# stay entirely empty before a collision refusal - a read-only probe like
+# `tmux list-windows` is expected there. What must still never appear is a
+# MUTATING call: closing, killing, or returning anything.
+assert_no_destructive_runtime_calls() {  # <runtime-log> <description>
+  assert_no_grep "kill-window" "$1" "$2: reached a destructive tmux call"
+  assert_no_grep "treehouse <return>" "$1" "$2: reached the treehouse return"
+}
+
 test_invalid_endpoint_records_refuse_before_mutation() {
   local dir id=endpoint-a
 
@@ -469,10 +480,9 @@ test_reused_pool_slot_refuses_before_touching_the_other_task() {
   assert_present "$dir/worktree/sentinel" "teardown reset a pool slot a second task record still holds"
   assert_present "$dir/home/state/$other.meta" "teardown removed the live task's record"
   assert_present "$dir/home/state/$id.meta" "teardown removed the stale task's record before refusing"
-  [ ! -s "$dir/runtime.log" ] \
-    || fail "teardown reached the runtime on a contested pool slot: $(cat "$dir/runtime.log")"
-  assert_contains "$(cat "$dir/stderr")" "$other" \
-    "refusal should name the other task holding the slot"
+  assert_no_destructive_runtime_calls "$dir/runtime.log" "teardown on a contested pool slot"
+  assert_contains "$(cat "$dir/stderr")" "$other is currently" \
+    "refusal should name the other task holding the slot and its live/dead state"
   kill "$worker" 2>/dev/null || true
   wait "$worker" 2>/dev/null || true
 
@@ -494,8 +504,7 @@ test_reused_pool_slot_refuses_before_touching_the_other_task() {
   [ "$rc" -ne 0 ] || fail "teardown returned a pool slot a secondmate home record still holds"
   assert_present "$dir/worktree/sentinel" "teardown reset a pool slot a secondmate home record still holds"
   assert_present "$dir/home/state/$other.meta" "teardown removed the secondmate record"
-  [ ! -s "$dir/runtime.log" ] \
-    || fail "teardown reached the runtime on a slot held by a secondmate home: $(cat "$dir/runtime.log")"
+  assert_no_destructive_runtime_calls "$dir/runtime.log" "teardown on a slot held by a secondmate home"
 
   pass "fm-teardown: a pool slot named by a second task record is never returned, killed, or reset"
 }
@@ -528,10 +537,9 @@ test_cross_home_pool_slot_collision_refuses() {
   assert_present "$dir/home/state/$id.meta" "cross-home collision removed stale metadata"
   assert_present "$second_home/state/$other.meta" "cross-home collision removed live metadata"
   assert_present "$dir/worktree/sentinel" "cross-home collision reset the shared slot"
-  [ ! -s "$dir/runtime.log" ] \
-    || fail "cross-home collision reached the runtime: $(cat "$dir/runtime.log")"
-  assert_contains "$(cat "$dir/stderr")" "$other" \
-    "cross-home refusal should name the task holding the slot"
+  assert_no_destructive_runtime_calls "$dir/runtime.log" "cross-home collision"
+  assert_contains "$(cat "$dir/stderr")" "$other is currently" \
+    "cross-home refusal should name the task holding the slot and its live/dead state"
   pass "fm-teardown: a pool slot held by another firstmate home is never returned"
 }
 
@@ -825,6 +833,193 @@ test_remote_layout_homes_serialize_on_one_project_lock() {
   pass "Treehouse project locking still serializes two homes across the remote-seeded boundary"
 }
 
+# --- worktree-slot collision: live/dead naming and proven supersession ------
+#
+# fm-teardown-worktree-collision: the collision refusal above (PR #3837) never
+# says whether the OTHER task is live or dead, and never lets a genuinely
+# stale record finish its own cleanup once superseded - so a retired task
+# whose slot a live task now holds can never be torn down at all and keeps
+# escalating forever (data/learnings.md, 2026-09-07/09-11). These tests cover
+# the fix: the refusal now names the other task's live/dead state, and a
+# PROVEN supersession (this record's own endpoint not alive, the other's
+# endpoint alive, and a later same-host spawn_gen) reconciles the stale
+# record - without --force - while leaving the live claimant's copy and pane
+# untouched. An unproven conflict (both dead, or no ordering to trust) still
+# refuses exactly as before, even with --force.
+
+new_alive_tmux_window() {  # <dir> <socket> <session> <window> <sleep-secs>
+  # A process whose basename contains a known harness name (claude) reads as
+  # a live agent to fm_backend_tmux_classify_process_name, regardless of what
+  # it actually runs - same technique as tests/fm-tmux-agent-liveness.test.sh.
+  local dir=$1 socket=$2 session=$3 window=$4 secs=$5 link
+  link="$dir/claude-link-$window"
+  ln -sf "$(command -v sleep)" "$link"
+  ( cd "$dir" && env -u TMUX -u TMUX_PANE "$REAL_TMUX" -S "$socket" \
+      new-window -d -t "$session:" -n "$window" "'$link' $secs" )
+}
+
+test_superseded_worktree_claim_completes_without_force() {
+  local dir socket socket_id session='endpoint safety' stale=stale-task live=live-task rc
+  [ -n "$REAL_TMUX" ] || { echo "skip - tmux not installed"; return 0; }
+  dir=$(make_case slot-superseded)
+  mark_case_as_treehouse_pool "$dir"
+  socket=superseded.sock
+  socket_id="$dir/$socket"
+  ( cd "$dir" && env -u TMUX -u TMUX_PANE "$REAL_TMUX" -S "$socket" new-session -d -s "$session" -n control )
+  new_alive_tmux_window "$dir" "$socket" "$session" "fm-$live" 30
+  cat > "$dir/fakebin/tmux" <<SH
+#!/usr/bin/env bash
+set -eu
+printf 'tmux' >> "\${FM_RUNTIME_LOG:?}"
+printf ' <%s>' "\$@" >> "\${FM_RUNTIME_LOG:?}"
+printf '\n' >> "\${FM_RUNTIME_LOG:?}"
+cd '$dir'
+exec '$REAL_TMUX' -S '$socket' "\$@"
+SH
+  chmod +x "$dir/fakebin/tmux"
+
+  # The stale record's own endpoint is dead (no such tmux window exists), and
+  # its spawn_gen is an earlier same-host epoch than the live claimant's.
+  fm_write_meta "$dir/home/state/$stale.meta" \
+    "window=$session:fm-$stale" "endpoint_task_id=$stale" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=ship" "mode=local-only" \
+    "spawn_gen=s1000.1.1"
+  fm_write_meta "$dir/home/state/$live.meta" \
+    "window=$session:fm-$live" "endpoint_task_id=$live" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=ship" "mode=local-only" \
+    "spawn_gen=s2000.1.1"
+
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" FM_RUNTIME_LOG="$dir/runtime.log" \
+    PATH="$dir/fakebin:$PATH" "$TEARDOWN" "$stale" \
+    > "$dir/stdout" 2> "$dir/stderr"
+  rc=$?
+  set -e
+
+  [ "$rc" -eq 0 ] || fail "superseded stale-record teardown refused without --force: $(cat "$dir/stderr")"
+  assert_absent "$dir/home/state/$stale.meta" "superseded stale record was not reconciled"
+  assert_present "$dir/home/state/$live.meta" "live task's own record was disturbed"
+  assert_present "$dir/worktree/sentinel" "superseded teardown reset a slot it no longer owns"
+  isolated_tmux_window_exists "$dir" "$socket" "$session" "fm-$live" \
+    || fail "superseded teardown closed the live claimant's pane"
+  assert_no_grep "treehouse <return>" "$dir/runtime.log" \
+    "superseded teardown returned a pool slot it no longer owns"
+  assert_contains "$(cat "$dir/stdout")" "superseded by live task $live" \
+    "completion line should note the superseded, untouched slot"
+
+  ( cd "$dir" && env -u TMUX -u TMUX_PANE "$REAL_TMUX" -S "$socket" kill-server 2>/dev/null ) || true
+  pass "fm-teardown: a proven-superseded worktree claim finishes its own record without --force and without touching the live claimant"
+}
+
+test_worktree_collision_names_live_dead_state_and_still_refuses_unproven() {
+  local dir socket socket_id session='endpoint safety' a=task-a b=task-b rc
+
+  # Case 1: both records point at the same slot, NEITHER endpoint is alive
+  # (no spawn_gen at all, so nothing could be proven even if one were alive).
+  # Ambiguous, so it must still refuse, and both are named "dead".
+  dir=$(make_case slot-both-dead)
+  mark_case_as_treehouse_pool "$dir"
+  fm_write_meta "$dir/home/state/$a.meta" \
+    "window=firstmate:fm-$a" "endpoint_task_id=$a" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  fm_write_meta "$dir/home/state/$b.meta" \
+    "window=firstmate:fm-$b" "endpoint_task_id=$b" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" FM_RUNTIME_LOG="$dir/runtime.log" \
+    PATH="$dir/fakebin:$PATH" "$TEARDOWN" "$a" --force \
+    > "$dir/stdout" 2> "$dir/stderr"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "both-dead worktree collision unexpectedly succeeded even under --force"
+  assert_present "$dir/home/state/$a.meta" "both-dead collision removed the record before refusing"
+  assert_contains "$(cat "$dir/stderr")" "$b is currently dead" \
+    "refusal should name the other task as dead"
+
+  # Case 2: the other claimant is genuinely alive (real tmux window with an
+  # agent-shaped process), but this record's spawn_gen is the LATER one, so
+  # ownership cannot be proven in this record's favor by the fix either -
+  # still a plain refusal, and this time named "live", not even with --force.
+  [ -n "$REAL_TMUX" ] || { echo "skip - tmux not installed for the live/unordered case"; return 0; }
+  dir=$(make_case slot-live-unordered)
+  mark_case_as_treehouse_pool "$dir"
+  socket=unordered.sock
+  socket_id="$dir/$socket"
+  ( cd "$dir" && env -u TMUX -u TMUX_PANE "$REAL_TMUX" -S "$socket" new-session -d -s "$session" -n control )
+  new_alive_tmux_window "$dir" "$socket" "$session" "fm-$b" 30
+  cat > "$dir/fakebin/tmux" <<SH
+#!/usr/bin/env bash
+set -eu
+printf 'tmux' >> "\${FM_RUNTIME_LOG:?}"
+printf ' <%s>' "\$@" >> "\${FM_RUNTIME_LOG:?}"
+printf '\n' >> "\${FM_RUNTIME_LOG:?}"
+cd '$dir'
+exec '$REAL_TMUX' -S '$socket' "\$@"
+SH
+  chmod +x "$dir/fakebin/tmux"
+  fm_write_meta "$dir/home/state/$a.meta" \
+    "window=$session:fm-$a" "endpoint_task_id=$a" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout" "spawn_gen=s3000.1.1"
+  fm_write_meta "$dir/home/state/$b.meta" \
+    "window=$session:fm-$b" "endpoint_task_id=$b" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout" "spawn_gen=s2000.1.1"
+  set +e
+  FM_HOME="$dir/home" FM_RUNTIME_LOG="$dir/runtime.log" FM_ROOT_OVERRIDE="$ROOT" \
+    PATH="$dir/fakebin:$PATH" "$TEARDOWN" "$a" --force \
+    > "$dir/stdout" 2> "$dir/stderr"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "unordered live collision unexpectedly succeeded even under --force"
+  assert_present "$dir/home/state/$a.meta" "unordered live collision removed the record before refusing"
+  isolated_tmux_window_exists "$dir" "$socket" "$session" "fm-$b" \
+    || fail "unordered live collision closed the other task's pane"
+  assert_contains "$(cat "$dir/stderr")" "$b is currently live" \
+    "refusal should name the other task as live"
+  ( cd "$dir" && env -u TMUX -u TMUX_PANE "$REAL_TMUX" -S "$socket" kill-server 2>/dev/null ) || true
+
+  pass "fm-teardown: an unproven worktree collision still refuses under --force and names each side's live/dead state"
+}
+
+# --- endpoint/window collision: the same hazard for a reused pane -----------
+#
+# data/learnings.md's 2026-09-11 "window instead of worktree" entry: a
+# backend can reuse a small numeric workspace/pane id across tasks, so a
+# long-dead task's window= can read identically to a live task's current one.
+# Two DIFFERENT task records naming the exact same window is the collision,
+# regardless of worktree - closing or killing it must refuse before it ever
+# reaches the runtime, exactly like the worktree check.
+test_window_collision_refuses_before_killing_the_other_tasks_pane() {
+  local dir id=stale-window other=live-window rc
+
+  dir=$(make_case window-collision)
+  # A DIFFERENT worktree per task rules out the worktree check entirely, so
+  # only the window check can be what refuses here. The tearing-down task's
+  # own window must validate against its own id (tmux requires pane=fm-<id>);
+  # the OTHER task's raw window= field is read without that validation, so it
+  # can - as a stand-in for Herdr's task-agnostic numeric pane ids - collide
+  # on the exact same string despite naming a different task.
+  mkdir -p "$dir/other-worktree"
+  fm_write_meta "$dir/home/state/$id.meta" \
+    "window=firstmate:fm-$id" "endpoint_task_id=$id" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  fm_write_meta "$dir/home/state/$other.meta" \
+    "window=firstmate:fm-$id" "endpoint_task_id=$other" \
+    "worktree=$dir/other-worktree" "project=$dir/project" "kind=scout"
+
+  set +e
+  run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
+  rc=$?
+  set -e
+
+  [ "$rc" -ne 0 ] || fail "teardown killed a window a second task record still names, even under --force"
+  assert_present "$dir/home/state/$id.meta" "window collision removed the stale record before refusing"
+  assert_present "$dir/home/state/$other.meta" "window collision removed the other task's record"
+  assert_no_destructive_runtime_calls "$dir/runtime.log" "window collision"
+  assert_contains "$(cat "$dir/stderr")" "$other" \
+    "refusal should name the other task holding the window"
+  pass "fm-teardown: a window named by a second task record is never closed or killed"
+}
+
 test_invalid_endpoint_records_refuse_before_mutation
 test_control_lock_contention_refuses_before_mutation
 test_non_pool_teardown_ignores_task_set_lock
@@ -842,3 +1037,6 @@ test_project_lock_anchors_at_the_local_root_across_home_layouts
 test_remote_seeded_home_returns_its_uncontested_slot
 test_remote_seeded_home_still_refuses_a_slot_its_child_holds
 test_remote_layout_homes_serialize_on_one_project_lock
+test_superseded_worktree_claim_completes_without_force
+test_worktree_collision_names_live_dead_state_and_still_refuses_unproven
+test_window_collision_refuses_before_killing_the_other_tasks_pane

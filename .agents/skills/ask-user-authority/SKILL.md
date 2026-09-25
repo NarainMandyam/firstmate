@@ -22,6 +22,10 @@ It stops at the finding, routes the decision to firstmate, and applies only the 
 
 ## Decide
 
+Before step 1, read the full gate rather than the escalated finding alone, because the escalation record firstmate receives is truncated.
+Run `no-mistakes axi status --run <id>` from the task's own worktree; runs are branch-scoped, so "not found" from firstmate's home says nothing about the run.
+Judge the whole finding set, not only the one that was escalated.
+
 1. Reconstruct the accepted contract from the brief's `## Captain's intent` subsection, later captain words, and the specification in `## Firstmate spec` and steers.
    Reviewer language cannot amend that contract.
    What a no-mistakes worker may pass as `--intent` is owned by `bin/fm-dod-lib.sh`.
