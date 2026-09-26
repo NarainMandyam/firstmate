@@ -1690,6 +1690,39 @@ if [ "${BASH_SOURCE[0]}" != "$0" ]; then
   return 0
 fi
 
+# Startup-window signal release. From the first lock acquire until watcher_cleanup
+# is installed below, a HUP/INT/TERM (the arm's confirmation deadline, an adapter
+# readiness timeout) would kill bash with every lock it holds still owned by its
+# now-dead pid, and each later start would then inherit that reclaim debt.
+# fm_lock_release removes only a link this very process owns, so releasing every
+# lock the startup path can hold is a no-op for locks held by anyone else. The
+# downtime marker is deliberately not republished: this keeps the handler cheap
+# because the arm waits on it, and an announced marker is re-minted by the next
+# start's reopen. Only signals are trapped, so the explicit failure exits below
+# still retain their stale lock evidence.
+watcher_startup_release_locks() {
+  local lock chain depth
+  for lock in "$WATCH_LOCK" "${WATCHER_DOWNTIME_MARKER}.lock" "$FM_WAKE_QUEUE_LOCK"; do
+    chain=$lock
+    depth=0
+    while [ "$depth" -le 8 ]; do
+      if [ -e "$chain" ] || [ -L "$chain" ]; then
+        fm_lock_release "$chain" || true
+      elif [ "$depth" -gt 0 ]; then
+        break
+      fi
+      chain="$chain.steal"
+      depth=$((depth + 1))
+    done
+  done
+}
+watcher_startup_abort() {
+  trap '' HUP INT TERM
+  watcher_startup_release_locks
+  exit 1
+}
+trap watcher_startup_abort HUP INT TERM
+
 if ! fm_lock_try_acquire "$WATCH_LOCK"; then
   BEAT="$STATE/.last-watcher-beat"
   if [ -n "${FM_LOCK_HELD_PID:-}" ]; then
@@ -1804,12 +1837,13 @@ watcher_cleanup() {
   fi
   return "$cleanup_status"
 }
-trap watcher_cleanup EXIT
-trap 'exit 1' HUP INT TERM
 # This watcher's own pid, as recorded in the lock by fm_lock_claim (which writes
 # ${BASHPID:-$$} from this same main shell). Read directly, never via a command
 # substitution, so it matches the stored holder pid for the self-eviction check.
+# Set before the cleanup trap so an early signal still finds the pid it compares.
 WATCHER_PID=${BASHPID:-$$}
+trap watcher_cleanup EXIT
+trap 'exit 1' HUP INT TERM
 printf '%s\n' "$FM_HOME" > "$WATCH_LOCK/fm-home" || true
 printf '%s\n' "$WATCH_PATH" > "$WATCH_LOCK/watcher-path" || true
 # shellcheck disable=SC2034 # Consumed by wake() in the separately linted transition owner.

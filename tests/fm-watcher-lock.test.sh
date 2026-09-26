@@ -14,10 +14,13 @@ DRAIN="$ROOT/bin/fm-wake-drain.sh"
 LIB="$ROOT/bin/fm-wake-lib.sh"
 
 # An arm only reports its typed failure after wait_for_healthy_successor has
-# spent the whole confirmation budget, so cases that wait for that failure must
-# outlast the largest production default (30s on MSYS, 10s elsewhere - see
-# ARM_CONFIRM_DEFAULT in bin/fm-watch-arm.sh). This is a ceiling spent only when
-# an arm genuinely fails to exit; a passing case returns as soon as it does.
+# spent the whole confirmation budget. Production defaults to 120s so a slow
+# fork-bound startup is not killed mid-confirmation, but fixtures that wait for
+# the typed failure pin the budget at 10s (the previous production default) so
+# a passing case returns quickly; cases that need a different budget set their
+# own FM_ARM_CONFIRM_TIMEOUT. The poll ceiling must outlast this pin and is
+# spent only when an arm genuinely fails to exit.
+export FM_ARM_CONFIRM_TIMEOUT=10
 ARM_FAIL_EXIT_POLLS=400
 
 TMP_ROOT=$(fm_test_tmproot fm-watcher-lock-tests)
@@ -1102,6 +1105,69 @@ test_msys_pid_identity_uses_proc() {
   pass "MSYS process identity uses compatible /proc fields"
 }
 
+test_startup_signal_releases_held_locks() {
+  # A TERM inside the startup window (after the watcher takes its locks, before
+  # it is healthy) used to leave .watch.lock and .wake-queue.lock owned by the
+  # dead pid, so every later start inherited reclaim debt. The peer here holds
+  # .watcher-down.lock to stall the recovery-marker section deterministically;
+  # a non-successor start stalls holding only .watch.lock, a successor start
+  # skips the reopen and stalls holding .watch.lock plus .wake-queue.lock.
+  local row dir state fakebin out pid peer armout armpid i lock owner successor
+  for row in plain successor; do
+    dir=$(make_case "startup-signal-$row")
+    state="$dir/state"
+    fakebin="$dir/fakebin"
+    out="$dir/watch.out"
+    armout="$dir/arm.out"
+    successor=
+    [ "$row" = successor ] && successor=1
+    sleep 300 &
+    peer=$!
+    mkdir "$state/.watcher-down.lock"
+    printf '%s\n' "$peer" > "$state/.watcher-down.lock/pid"
+    PATH="$fakebin:$PATH" FM_STATE_OVERRIDE="$state" FM_WATCH_HANDLING_SUCCESSOR="$successor" FM_POLL=5 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$out" 2>&1 &
+    pid=$!
+    i=0
+    while [ "$i" -lt 300 ]; do
+      lock=$(cat "$state/.watch.lock/pid" 2>/dev/null || true)
+      owner=$(cat "$state/.wake-queue.lock/pid" 2>/dev/null || true)
+      if [ "$lock" = "$pid" ] && { [ "$row" = plain ] || [ "$owner" = "$pid" ]; }; then
+        break
+      fi
+      sleep 0.1
+      i=$((i + 1))
+    done
+    [ "$lock" = "$pid" ] || fail "startup ($row): watcher never took its lock while stalled on the marker lock"
+    [ ! -e "$state/.watch.lock/fm-home" ] || fail "startup ($row): watcher became healthy instead of stalling"
+    kill -TERM "$pid" 2>/dev/null || true
+    wait_for_exit "$pid" 100
+    [ ! -e "$state/.watch.lock" ] && [ ! -L "$state/.watch.lock" ] \
+      || fail "startup ($row): TERM mid-startup left a dead-owned .watch.lock"
+    [ ! -e "$state/.wake-queue.lock" ] && [ ! -L "$state/.wake-queue.lock" ] \
+      || fail "startup ($row): TERM mid-startup left a dead-owned .wake-queue.lock"
+    [ "$(cat "$state/.watcher-down.lock/pid" 2>/dev/null || true)" = "$peer" ] \
+      || fail "startup ($row): TERM handler released a lock another process holds"
+    kill "$peer" 2>/dev/null || true
+    wait "$peer" 2>/dev/null || true
+    rm -f "$state/.watcher-down.lock/pid"
+    rmdir "$state/.watcher-down.lock"
+
+    PATH="$fakebin:$PATH" FM_HOME="$dir" FM_POLL=5 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH_ARM" > "$armout" &
+    armpid=$!
+    i=0
+    while [ "$i" -lt 150 ]; do
+      grep -qF 'watcher: started pid=' "$armout" 2>/dev/null && break
+      is_live_non_zombie "$armpid" || break
+      sleep 0.1
+      i=$((i + 1))
+    done
+    grep -qF 'watcher: started pid=' "$armout" || fail "startup ($row): arm after the mid-startup TERM did not start a watcher: $(cat "$armout")"
+    kill "$armpid" "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" 2>/dev/null || true
+    wait "$armpid" 2>/dev/null || true
+  done
+  pass "TERM during watcher startup releases the locks it holds and a later arm succeeds"
+}
+
 test_singleton_start
 test_pid_identity_is_locale_invariant
 test_proc_pid_identity_ignores_wall_clock_and_detects_pid_reuse
@@ -1125,6 +1191,7 @@ test_arm_self_eviction_is_loud_without_successor
 test_arm_attaches_and_waits_for_live_fresh_watcher
 test_attached_arm_signal_is_recorded_in_cycle_ledger
 test_arm_starts_and_self_heals
+test_startup_signal_releases_held_locks
 test_arm_hup_cleans_child_and_temp_output
 test_arm_propagates_immediate_wake_before_confirmation
 test_arm_waits_for_peer_beacon_after_child_stands_down
