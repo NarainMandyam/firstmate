@@ -386,6 +386,26 @@ test_relaunch_preserves_durable_task_metadata() {
   pass "fm-control relaunch: durable task metadata survives replacement launch publication"
 }
 
+test_relaunch_keeps_the_pr_identity_readable_by_the_merge_poll() {
+  local dir out rc head=0123456789abcdef0123456789abcdef01234567
+  dir=$(new_case pr-identity rl20)
+  add_ship_task "$dir" rl20 claude
+  {
+    printf '%s\n' 'pr=https://github.com/example/repo/pull/20'
+    printf '%s\n' "pr_head=$head"
+    printf '%s\n' 'decisions_reviewed=1'
+  } >> "$dir/home/state/rl20.meta"
+
+  out=$(run_control "$dir" rl20 relaunch --note "continuing review work"); rc=$?
+  expect_code 0 "$rc" "relaunch should preserve the PR identity"$'\n'"$out"
+  # shellcheck source=/dev/null
+  ( . "$ROOT/bin/fm-pr-lib.sh"
+    fm_pr_metadata_identity_parse "$dir/home/state/rl20.meta" \
+      && [ "$FM_PR_META_NUMBER" = 20 ] ) \
+    || fail "the relaunched record must still satisfy the merge poll's PR identity check"
+  pass "fm-control relaunch: pr= stays last so the armed merge poll keeps validating"
+}
+
 test_relaunch_serializes_concurrent_durable_metadata_publication() {
   local dir control_pid link_pid rc i=0 traceparent prepare launch_release waiting ready release
   dir=$(new_case metadata-race rl28)
@@ -1561,6 +1581,7 @@ test_relaunch_moves_a_drifted_item_back_in_flight() {
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_from_linked_home_preserves_recorded_worktree
 test_relaunch_preserves_durable_task_metadata
+test_relaunch_keeps_the_pr_identity_readable_by_the_merge_poll
 test_relaunch_serializes_concurrent_durable_metadata_publication
 test_disabled_relaunch_clears_prior_trace_context
 test_relaunch_appends_the_progress_note_to_the_instructions
