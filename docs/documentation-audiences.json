@@ -249,6 +249,34 @@
       "audience": "agent-runtime"
     },
     {
+      "path": ".agents/skills/exploratory-testing/SKILL.md",
+      "audience": "agent-runtime"
+    },
+    {
+      "path": ".agents/skills/exploratory-testing/FIRSTMATE-NOTES.md",
+      "audience": "agent-runtime"
+    },
+    {
+      "path": ".agents/skills/exploratory-testing/references/agent-harness.md",
+      "audience": "agent-runtime"
+    },
+    {
+      "path": ".agents/skills/exploratory-testing/references/tours.md",
+      "audience": "agent-runtime"
+    },
+    {
+      "path": ".agents/skills/exploratory-testing/references/report-template.md",
+      "audience": "agent-runtime"
+    },
+    {
+      "path": ".agents/skills/exploratory-testing/references/session-templates.md",
+      "audience": "agent-runtime"
+    },
+    {
+      "path": ".agents/skills/exploratory-testing/references/heuristics-and-automation.md",
+      "audience": "agent-runtime"
+    },
+    {
       "path": ".greptile/rules.md",
       "audience": "maintainer-architecture"
     },
