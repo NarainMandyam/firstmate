@@ -16,12 +16,20 @@ function world(on: On, env: Record<string, string> = {}, root = HOME): World {
   const w: World = {
     statuses: [],
     toasts: [],
-    usage: { startedAt: 0, context: { window: 1_000_000 }, rateLimits: [{ kind: 'five_hour', percentUsed: 41.2 }] },
+    usage: {
+      startedAt: 0,
+      context: { window: 1_000_000 },
+      rateLimits: [
+        { kind: 'five_hour', percentUsed: 41.2, resetsAt: '2026-10-10T14:10:00Z' },
+        { kind: 'seven_day', percentUsed: 19, resetsAt: '2026-10-13T16:00:00Z' },
+      ],
+    },
   }
   mock.env(on, env)
   mock.store(on)
   mock.clock(on, { now: Date.UTC(2026, 9, 10, 12) })
   on('session.root', () => ({ value: root }))
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('fs.stat', ($, e) => {
     const kind = ({ [`${HOME}/bin/fm-session-start.sh`]: 'file', [`${HOME}/state`]: 'dir' } as const)[e.path]
     if (kind === undefined) throw new Error('ENOENT')
@@ -52,14 +60,14 @@ async function wakeTurn($: Engine, w: World, tokens: number, isIdle = true) {
 }
 
 describe('wake meter', () => {
-  test('counts notifications, shows cost and allowance used, and nudges a restart once per 50k step', async ($, on) => {
+  test('leads with what is left of both allowance windows, then context and today\'s count, and nudges a restart once per 50k step', async ($, on) => {
     const w = world(on)
     await wakeTurn($, w, 180_000, false)
-    expect(w.statuses.at(-1)).toBe('ctx 180k · wakes 1 (0 idle) · last 1.1M · 5h 41% used')
+    expect(w.statuses.at(-1)).toBe('5h ▰▰▰▱▱ 59% left · wk ▰▰▰▰▱ 81% left · ctx 180k · wakes 1')
     expect(w.toasts).toHaveLength(0)
 
     await wakeTurn($, w, 262_000)
-    expect(w.statuses.at(-1)).toBe('ctx 262k · wakes 2 (1 idle) · last 1.1M · 5h 41% used')
+    expect(w.statuses.at(-1)).toBe('5h ▰▰▰▱▱ 59% left · wk ▰▰▰▰▱ 81% left · ctx 262k · wakes 2')
     expect(w.toasts).toHaveLength(1)
     expect(w.toasts[0]).toContain('/stow and restart')
 
@@ -71,12 +79,31 @@ describe('wake meter', () => {
     expect(w.toasts).toHaveLength(2)
   })
 
+  test('flags a window with little left, and shows only the 5h bar when the week has no reading', async ($, on) => {
+    const w = world(on)
+    w.usage = { ...w.usage, rateLimits: [{ kind: 'five_hour', percentUsed: 92 }] }
+    await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+    expect(w.statuses.at(-1)).toBe('⚠ 5h ▱▱▱▱▱ 8% left · wakes 0')
+
+    w.usage = { ...w.usage, rateLimits: [] }
+    await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+    expect(w.statuses.at(-1)).toBe('wakes 0')
+  })
+
+  test('/wakes answers the day\'s tally and when each window resets', async ($, on) => {
+    const w = world(on)
+    await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+    await wakeTurn($, w, 180_000)
+    const ran = await $.command.run({ command: 'wakes', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
+    expect(ran.text).toBe('wakes 1 (1 idle) today · last cost 1.1M · ctx 180k\n5h 59% left, resets in 2h 10m · wk 81% left, resets in 3d 4h')
+  })
+
   test('a captain prompt is not counted as a notification', async ($, on) => {
     const w = world(on)
     await $.prompt.submit({ text: 'status?', wait: false, origin: { kind: 'composer' } })
     await $.turn.start({ text: 'status?', turnId: 'c' })
     await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 'c', reason: 'answer' })
-    expect(w.statuses.at(-1)).toBe('wakes 0 (0 idle) · 5h 41% used')
+    expect(w.statuses.at(-1)).toBe('5h ▰▰▰▱▱ 59% left · wk ▰▰▰▰▱ 81% left · wakes 0')
   })
 
   test('stays inert in a worker session', async ($, on) => {

@@ -1071,8 +1071,10 @@ test_temp_edit_and_process_kill_rules() {
       "$kind brief missing the no-pkill-by-pattern rule"
     assert_grep "give each dev server its own port" "$brief" \
       "$kind brief missing the own-port rule"
+    assert_grep "never drive the captain's own screen: only headless browsers" "$brief" \
+      "$kind brief missing the no-driving-the-captain's-screen rule"
   done
-  pass "fm-brief.sh: temporary-edit and no-pkill rules render in both ship and scout briefs"
+  pass "fm-brief.sh: temporary-edit, no-pkill, and headless-only rules render in both ship and scout briefs"
 }
 
 # The scout report header convention feeds supersession tracking and the

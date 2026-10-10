@@ -1,7 +1,7 @@
 {
   "name": "wake-meter",
-  "version": "0.1.0",
-  "description": "Shows what firstmate's notifications cost in its primary session and nudges a restart when context grows.",
+  "version": "0.2.0",
+  "description": "Shows how much of the 5-hour and weekly allowance is left and what firstmate's notifications cost in its primary session, and nudges a restart when context grows.",
   "author": {
     "name": "Narain Mandyam"
   },

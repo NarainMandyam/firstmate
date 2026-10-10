@@ -2455,6 +2455,40 @@ evict_stalled_holder() {
   ! fm_pid_alive "$pid"
 }
 
+# Startup-window lock release. From the first lock acquire until watcher_cleanup
+# is installed below, a HUP/INT/TERM (the arm's confirmation deadline, an adapter
+# readiness timeout) would kill bash with every lock it holds still owned by its
+# now-dead pid, and each later start would then inherit that reclaim debt.
+# The release rides the EXIT trap rather than a HUP/TERM trap body, so stop
+# signals keep the native fatal handling watcher_stop_signals explains.
+# fm_lock_release removes only a link this very process owns, so releasing every
+# lock the startup path can hold is a no-op for locks held by anyone else. The
+# downtime marker is deliberately not republished: this keeps the handler cheap
+# because the arm waits on it, and an announced marker is re-minted by the next
+# start's reopen. The explicit recovery-state failure exits below set
+# WATCHER_STARTUP_RETAIN_LOCKS first so they still retain their stale lock
+# evidence.
+WATCHER_STARTUP_RETAIN_LOCKS=0
+watcher_startup_release_locks() {
+  local lock chain depth
+  [ "$WATCHER_STARTUP_RETAIN_LOCKS" -eq 0 ] || return 0
+  for lock in "$WATCH_LOCK" "${WATCHER_DOWNTIME_MARKER}.lock" "$FM_WAKE_QUEUE_LOCK"; do
+    chain=$lock
+    depth=0
+    while [ "$depth" -le 8 ]; do
+      if [ -e "$chain" ] || [ -L "$chain" ]; then
+        fm_lock_release "$chain" || true
+      elif [ "$depth" -gt 0 ]; then
+        break
+      fi
+      chain="$chain.steal"
+      depth=$((depth + 1))
+    done
+  done
+}
+trap watcher_startup_release_locks EXIT
+watcher_stop_signals
+
 EVICTED_PID=
 EVICTED_BEAT_AGE=
 BEAT="$STATE/.last-watcher-beat"
@@ -2494,11 +2528,13 @@ if [ -n "${FM_LOCK_RECOVERED_PID:-}" ]; then
 fi
 if [ "${FM_WATCH_HANDLING_SUCCESSOR:-0}" != 1 ]; then
   if ! fm_recovery_marker_reopen_announced "$WATCHER_DOWNTIME_MARKER"; then
+    WATCHER_STARTUP_RETAIN_LOCKS=1
     echo "watcher: recovery state could not be reopened safely; retaining stale lock evidence" >&2
     exit 1
   fi
 fi
 if ! fm_recovery_marker_arm_check "$WATCHER_DOWNTIME_MARKER"; then
+  WATCHER_STARTUP_RETAIN_LOCKS=1
   echo "watcher: recovery state could not be consumed safely; retaining stale lock evidence" >&2
   exit 1
 fi
@@ -2600,12 +2636,13 @@ watcher_cleanup() {
   fi
   return "$cleanup_status"
 }
-trap watcher_cleanup EXIT
-watcher_stop_signals
 # This watcher's own pid, as recorded in the lock by fm_lock_claim (which writes
 # ${BASHPID:-$$} from this same main shell). Read directly, never via a command
 # substitution, so it matches the stored holder pid for the self-eviction check.
+# Set before the cleanup trap so an early signal still finds the pid it compares.
 WATCHER_PID=${BASHPID:-$$}
+trap watcher_cleanup EXIT
+watcher_stop_signals
 printf '%s\n' "$FM_HOME" > "$WATCH_LOCK/fm-home" || true
 printf '%s\n' "$WATCH_PATH" > "$WATCH_LOCK/watcher-path" || true
 # shellcheck disable=SC2034 # Consumed by wake() in the separately linted transition owner.
