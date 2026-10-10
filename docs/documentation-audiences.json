@@ -497,6 +497,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "plugins/guard-translator/README.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "plugins/wake-meter/README.md",
       "audience": "operator-current"
     },
