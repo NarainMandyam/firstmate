@@ -1,0 +1,9 @@
+{
+  "name": "fleet-deck",
+  "version": "0.1.0",
+  "description": "The captain's deck for a firstmate primary session: a band above the prompt with calls, workers, PRs, monitoring and disk, a Calls pane that records answers, and a Fleet pane with a peek key.",
+  "author": {
+    "name": "firstmate"
+  },
+  "types": "./types/index.d.ts"
+}
