@@ -24,6 +24,11 @@
       "name": "disk-sentinel",
       "source": "./plugins/disk-sentinel",
       "description": "Quiet free-space sentinel that surfaces in the status line only near or below its threshold, plus a /targets listing of build-cache dirs and whether a live task still owns them."
+    },
+    {
+      "name": "fleet-deck",
+      "source": "./plugins/fleet-deck",
+      "description": "The captain's deck for firstmate's primary session: a band with calls, workers, PRs, monitoring and disk, a Calls pane that records answers, and a Fleet pane with a peek key."
     }
   ]
 }
