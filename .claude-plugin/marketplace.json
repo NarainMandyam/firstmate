@@ -23,7 +23,7 @@
     {
       "name": "disk-sentinel",
       "source": "./plugins/disk-sentinel",
-      "description": "Status-line free-space alarm plus a /targets listing of build-cache dirs and whether a live task still owns them."
+      "description": "Quiet free-space sentinel that surfaces in the status line only near or below its threshold, plus a /targets listing of build-cache dirs and whether a live task still owns them."
     }
   ]
 }
