@@ -529,6 +529,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "plugins/fleet-deck/README.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "plugins/guard-translator/README.md",
       "audience": "operator-current"
     },
