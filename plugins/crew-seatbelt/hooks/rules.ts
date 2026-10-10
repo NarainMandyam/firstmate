@@ -301,6 +301,10 @@ export function isBuildOrTest(argv: readonly string[]): boolean {
 const SCREEN = 'The captain must never see a worker test: no window may open or move on his screen.'
 const HEADLESS = 'Test headlessly instead: a headless browser (Playwright\'s default, chrome-devtools-axi with no HEADED or AUTO_CONNECT variable), or read the file directly.'
 
+// Programs that launch a browser or a test runner that may; a flag in any
+// other command (echo, grep, a commit message) is only text.
+const BROWSER_RUNNERS = new Set(['npx', 'bunx', 'npm', 'pnpm', 'yarn', 'bun', 'node', 'deno', 'tsx', 'playwright', 'vitest', 'cypress', 'pytest'])
+
 export const isOn = (value: string) => value !== '' && value !== '0' && value.toLowerCase() !== 'false'
 
 function screen(s: Simple, browser: BrowserEnv): string | undefined {
@@ -318,7 +322,9 @@ function screen(s: Simple, browser: BrowserEnv): string | undefined {
   if (prog === 'chrome-devtools-axi' && (browser.isHeaded || browser.isAutoConnect)) {
     return `${NAME}: this session's environment sets CHROME_DEVTOOLS_AXI_${browser.isHeaded ? 'HEADED' : 'AUTO_CONNECT'}, so chrome-devtools-axi would show a window or drive the captain's own Chrome. ${SCREEN} Report blocked instead of browsing.`
   }
-  const flag = s.argv.find(a => a === '--headed' || a === '--headless=false' || a === '--no-headless')
+  const flag = BROWSER_RUNNERS.has(prog)
+    ? s.argv.find(a => a === '--headed' || a === '--headless=false' || a === '--no-headless')
+    : undefined
   if (flag !== undefined) return `${NAME}: ${flag} opens a visible browser window on the captain's screen. ${SCREEN} Drop the flag; browsers run headless by default.`
   const isScript = ['node', 'npx', 'bun', 'bunx', 'deno', 'tsx'].includes(prog)
   if (isScript && s.argv.some(a => /headless\s*:\s*false/.test(a))) {

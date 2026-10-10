@@ -33,15 +33,25 @@ export const register: Register = on => {
     return next(e)
   }).catch(($, e, next) => (next.called ? next(e) : { deny: FAILED }))
 
-  for (const tool of ['Write', 'Edit'] as const) {
-    on('tool.call', { tool }, async ($, e, next) => {
-      if (!RESERVED_PATH.test(e.file_path) || !(await isWorker($))) return next(e)
-      const repo = await wwRepo($, undefined, [])
-      const dir = repo === undefined ? undefined : reservedDir(repo, e.file_path)
+  on('tool.call', { tool: 'Write' }, async ($, e, next) => {
+    const deny = await reserved($, e.file_path)
 
-      return dir === undefined ? next(e) : { deny: reservedDeny(dir) }
-    }).catch(($, e, next) => (next.called ? next(e) : { deny: FAILED }))
-  }
+    return deny === undefined ? next(e) : { deny }
+  }).catch(($, e, next) => (next.called ? next(e) : { deny: FAILED }))
+
+  on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
+    const deny = await reserved($, e.file_path)
+
+    return deny === undefined ? next(e) : { deny }
+  }).catch(($, e, next) => (next.called ? next(e) : { deny: FAILED }))
+}
+
+async function reserved($: Engine, path: string): Promise<string | undefined> {
+  if (!RESERVED_PATH.test(path) || !(await isWorker($))) return undefined
+  const repo = await wwRepo($, undefined, [])
+  const dir = repo === undefined ? undefined : reservedDir(repo, path)
+
+  return dir === undefined ? undefined : reservedDeny(dir)
 }
 
 type Engine = EngineInterface
