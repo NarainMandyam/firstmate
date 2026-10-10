@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'claude-code/testing'
-import type { On, ProcessRunResult, RenderPropsOf } from 'claude-code'
+import type { EngineInterface, On, ProcessRunResult, RenderPropsOf } from 'claude-code'
 
 const PLUGIN = 'nm-monitor'
 const HOME = '/srv/fm-home'
@@ -134,7 +134,7 @@ const arm = (on: On, world: { env?: Record<string, string>; statusGate?: () => P
   return { runs, open, commands, clock }
 }
 
-const openMonitor = ($: Parameters<Parameters<typeof test>[1]>[0]) =>
+const openMonitor = ($: EngineInterface) =>
   $.command.run({ command: 'nm', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
 
 test('hidden until /nm, then one row per pipeline run, read-only, and the poll stops with the pane', async ($, on) => {
