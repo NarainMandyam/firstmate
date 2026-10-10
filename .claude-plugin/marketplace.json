@@ -19,6 +19,11 @@
       "name": "guard-translator",
       "source": "./plugins/guard-translator",
       "description": "Explains a firstmate guard refusal in plain words and offers the fixed command."
+    },
+    {
+      "name": "disk-sentinel",
+      "source": "./plugins/disk-sentinel",
+      "description": "Status-line free-space alarm plus a /targets listing of build-cache dirs and whether a live task still owns them."
     }
   ]
 }
