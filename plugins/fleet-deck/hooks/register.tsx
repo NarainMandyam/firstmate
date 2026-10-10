@@ -69,6 +69,7 @@ const oneLine = (value: string): string => value.replace(/[\t\r\n]+/g, ' ').trim
 let home: string | null = null
 let timer: { cancel: () => void } | null = null
 let isRefreshing = false
+let isWriteRefreshOwed = false
 let lastRefreshAt = 0
 let polls = 0
 let lastDisk: { usedPct: number; freeGb: number } | null = null
@@ -145,7 +146,11 @@ const announce = async ($: Dollar, deck: Deck, vitals: DeckVitals) => {
 // `write` the read that follows a recorded answer, which must not be skipped:
 // a stale card invites a repeat press and a duplicate inbox note.
 const refresh = async ($: Dollar, origin: 'timer' | 'press' | 'write') => {
-  if (home === null || isRefreshing) return
+  if (home === null) return
+  if (isRefreshing) {
+    if (origin === 'write') isWriteRefreshOwed = true
+    return
+  }
   const now = await $.clock.now()
   if (origin === 'press' && now - lastRefreshAt < PRESS_REFRESH_FLOOR_MS) return
   isRefreshing = true
@@ -167,6 +172,10 @@ const refresh = async ($: Dollar, origin: 'timer' | 'press' | 'write') => {
     await setNotice($, `${SNAPSHOT_NOTICE} error: ${cut(String(error), 100)}`)
   } finally {
     isRefreshing = false
+    if (isWriteRefreshOwed) {
+      isWriteRefreshOwed = false
+      void refresh($, 'write')
+    }
   }
 }
 

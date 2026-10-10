@@ -108,7 +108,12 @@ const ok = (stdout: string): ProcessRunResult => ({
 // from fixtures, every answer recorded so a test can say what ran.
 const arm = (
   on: On,
-  world: { env?: Record<string, string>; store?: Record<string, unknown>; fixture: () => Fixture },
+  world: {
+    env?: Record<string, string>
+    store?: Record<string, unknown>
+    fixture: () => Fixture
+    snapshotGate?: () => Promise<void> | undefined
+  },
 ) => {
   const runs: Run[] = []
   const notified: string[] = []
@@ -128,10 +133,11 @@ const arm = (
     },
   }))
   on('fs.exists', ($, e) => ({ value: !e.path.endsWith('/.fm-secondmate-home') }))
-  on('process.run', ($, e) => {
+  on('process.run', async ($, e) => {
     runs.push({ argv: e.argv, stdin: e.init?.stdin })
     const script = e.argv[0] ?? ''
     if (script.endsWith('/bin/fm-fleet-snapshot.sh')) {
+      await world.snapshotGate?.()
       const fixture = world.fixture()
       if (fixture.snapshotFails) return { value: { ...ok(''), exitCode: 1, stderr: 'state unreadable' } }
       return { value: ok(JSON.stringify(snapshot(fixture))) }
@@ -257,6 +263,46 @@ test('band and panes draw the fleet on terminal and desktop, and every control r
   // Only firstmate's own entry points ever ran: nothing merged, drained or armed.
   const allowed = new Set(['fm-fleet-snapshot.sh', 'df', 'fm-captain-hold.sh', 'fm-inbox.sh', 'fm-peek.sh', 'fm-crew-state.sh'])
   for (const script of scriptsRun(world.runs)) expect(allowed.has(script ?? '')).toBe(true)
+})
+
+test('an answer recorded while a poll is in flight is followed by a fresh snapshot', async ($, on) => {
+  let gate: Promise<void> | undefined
+  let release = () => {}
+  const world = arm(on, { fixture: () => ({ calls: ['ww-nav'] }), snapshotGate: () => gate })
+  const snapshots = () => scriptsRun(world.runs).filter(s => s === 'fm-fleet-snapshot.sh').length
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+  await world.clock.advance(2_000)
+  expect(snapshots()).toBe(1)
+
+  gate = new Promise(resolve => {
+    release = resolve
+  })
+  await world.clock.advance(60_000)
+  expect(snapshots()).toBe(2)
+
+  const band = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  await band.press({ key: 'open-calls' })
+  const calls = await $.ui.mount({
+    plugin: PLUGIN,
+    surface: 'terminal',
+    component: 'Pane',
+    requestId: 'fleet-calls',
+    props: pane('Calls for the captain'),
+  })
+  await calls.input({ key: 'answer:ww-nav', text: 'ship it' })
+  expect(scriptsRun(world.runs).slice(-2)).toEqual(['fm-captain-hold.sh', 'fm-inbox.sh'])
+  expect(snapshots()).toBe(2)
+
+  gate = undefined
+  release()
+  await world.clock.advance(1)
+  expect(snapshots()).toBe(3)
+  expect(world.runs.at(-1)?.argv).toEqual([`${HOME}/bin/fm-fleet-snapshot.sh`, '--json'])
+
+  await world.clock.advance(1_000)
+  expect(snapshots()).toBe(3)
+  await band.unmount()
+  await calls.unmount()
 })
 
 test('stays inert in a worker session', async ($, on) => {
