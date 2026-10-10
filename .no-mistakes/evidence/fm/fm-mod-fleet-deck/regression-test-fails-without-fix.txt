@@ -1,0 +1,27 @@
+diff --git a/Users/narain/.no-mistakes/worktrees/c01ca8b8861e/01M4KFG62ZEQF5MFQ9WY2ZET8V/plugins/fleet-deck/hooks/register.tsx b/hooks/register.tsx
+index 9358592..559eeb1 100644
+--- a/Users/narain/.no-mistakes/worktrees/c01ca8b8861e/01M4KFG62ZEQF5MFQ9WY2ZET8V/plugins/fleet-deck/hooks/register.tsx
++++ b/hooks/register.tsx
+@@ -148,7 +148,6 @@ const announce = async ($: Dollar, deck: Deck, vitals: DeckVitals) => {
+ const refresh = async ($: Dollar, origin: 'timer' | 'press' | 'write') => {
+   if (home === null) return
+   if (isRefreshing) {
+-    if (origin === 'write') isWriteRefreshOwed = true
+     return
+   }
+   const now = await $.clock.now()
+
+hooks/register.test.ts:
+(pass) band and panes draw the fleet on terminal and desktop, and every control routes through firstmate [509.58ms]
+(fail) an answer recorded while a poll is in flight is followed by a fresh snapshot [221.60ms]
+  AssertionError: expect(received).toBe()
+  
+  Expected: 3
+  Received: 2
+(pass) stays inert in a worker session [92.35ms]
+(pass) alerts only when something new needs the captain [121.02ms]
+(pass) a snapshot failure shows on the band until the next snapshot succeeds [125.33ms]
+
+ 4 pass
+ 1 fail
+Ran 5 tests across 1 file. [1.65s]

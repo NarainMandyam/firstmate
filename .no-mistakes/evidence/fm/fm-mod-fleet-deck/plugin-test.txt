@@ -1,0 +1,12 @@
+
+hooks/register.test.ts:
+(pass) band and panes draw the fleet on terminal and desktop, and every control routes through firstmate [399.90ms]
+(pass) an answer recorded while a poll is in flight is followed by a fresh snapshot [177.12ms]
+(pass) stays inert in a worker session [89.26ms]
+(pass) alerts only when something new needs the captain [105.93ms]
+(pass) a snapshot failure shows on the band until the next snapshot succeeds [105.25ms]
+
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [1.39s]
+exit 0

@@ -1,0 +1,40 @@
+$ printf "ww-nav	tabs please	deck: answer	done
+" | bin/fm-captain-hold.sh answers --source captain-deck
+closed: ww-nav
+answers: closed=1 skipped=0
+exit=0
+$ bin/fm-inbox.sh note "Deck: captain answered ww-nav (close the call): tabs please"
+queued 1791655998-lgdvkp
+  Deck: captain answered ww-nav (close the call): tabs please
+  firstmate will pick this up at its next check.
+exit=0
+$ bin/fm-inbox.sh note "Deck: captain pressed Merge for mp-b - please merge https://github.com/NarainMandyam/MealPrepper/pull/2"
+queued 1791655999-hKKGWU
+  Deck: captain pressed Merge for mp-b - please merge https://github.com/NarainMandyam/MealPrepper/pul
+  firstmate will pick this up at its next check.
+exit=0
+--- backlog after
+## In flight
+
+## Queued
+## Done
+- [x] ww-nav - Decide the nav shape (repo: writing-workbench) (kind: scout) (done 2026-10-10) (hold: Captain: pick tabs or sidebar) (hold-kind: captain)
+  Resolution recorded by fm-captain-hold.
+  Decision digest: d47ef3f8aa326fcb69181ccadddad0128ed0a97253fd516a775967ac23b9d881
+  Resolution mode: answered
+
+  Captain decision:
+  Captain answered this call through captain-deck.
+  Task: ww-nav
+  Answer: tabs please
+  Answer as shown to the captain: deck: answer
+--- snapshot captain calls after
+[]
+--- replay same answer (duplicate press)
+closed: ww-nav
+answers: closed=1 skipped=0
+exit=0
+--- different words after close
+skipped: ww-nav (already closed)
+answers: closed=0 skipped=1
+exit=1

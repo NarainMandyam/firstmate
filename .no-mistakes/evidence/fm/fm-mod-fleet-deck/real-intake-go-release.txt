@@ -1,0 +1,9 @@
+$ printf "ww-go	go	deck: go	release
+" | bin/fm-captain-hold.sh answers --source captain-deck
+closed: ww-go
+answers: closed=1 skipped=0
+exit=0
+- [ ] ww-go - Resume the outline work (repo: writing-workbench) (kind: ship) (since 2026-10-10)
+  Resolution recorded by fm-captain-hold.
+  Decision digest: aa6aecda5060221edb7cf48a642d6dc0febc1a375944dff44251b55dfcf38f4c
+  Resolution mode: released

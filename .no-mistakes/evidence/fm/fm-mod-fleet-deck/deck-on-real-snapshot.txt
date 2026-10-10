@@ -1,0 +1,24 @@
+a project repo that is not a firstmate home: band="engine band" processRuns=0
+BAND: ⚓ 1 call for you0 working1 PR to reviewmonitor 11sdisk 82%CallsFleethide
+CALLS PANE: Decisions (1)Decide the nav shapewriting-workbench · ww-navCaptain: pick tabs or sidebarGo: resume the held workreply in chatPRs to review (1)mp-bMealPrepper · worker unknownhttps://github.com/NarainMandyam/MealPrepper/pull/2Merge (asks firstmate)copy linkrefreshcloseAnswers are recorded in firstmate's own records and firstmate is woken to act; Merge only asks.
+FLEET PANE: Fleet (1)snapshot 0s agomp-b MealPrepper unknown harness state unavailable (unknown missing) PRrefreshclose
+RUN {"argv":["/tmp/fd-e2e.yC8P/home/bin/fm-fleet-snapshot.sh","--json"]}
+RUN {"argv":["df","-P","-k","/tmp/fd-e2e.yC8P/home"]}
+RUN {"argv":["/tmp/fd-e2e.yC8P/home/bin/fm-captain-hold.sh","answers","--source","captain-deck"],"stdin":"ww-nav\ttabs please\tdeck: answer\tdone\n"}
+RUN {"argv":["/tmp/fd-e2e.yC8P/home/bin/fm-inbox.sh","note","Deck: captain answered ww-nav (close the call): tabs please"]}
+RUN {"argv":["/tmp/fd-e2e.yC8P/home/bin/fm-fleet-snapshot.sh","--json"]}
+RUN {"argv":["/tmp/fd-e2e.yC8P/home/bin/fm-inbox.sh","note","Deck: captain pressed Merge for mp-b - please merge https://github.com/NarainMandyam/MealPrepper/pull/2"]}
+FM_HOME pointing at a different home: band="engine band" processRuns=0
+
+hooks/bridge.test.ts:
+(pass) real snapshot drives the deck; answer and merge emit intake lines [351.42ms]
+a secondmate home: band="engine band" processRuns=0
+
+hooks/inert.test.ts:
+(pass) stays inert in a project repo that is not a firstmate home [242.76ms]
+(pass) stays inert in FM_HOME pointing at a different home [119.54ms]
+(pass) stays inert in a secondmate home [113.67ms]
+
+ 4 pass
+ 0 fail
+Ran 4 tests across 2 files. [1.10s]

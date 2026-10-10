@@ -1,0 +1,99 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-10T18:12:01Z",
+  "fm_home": "/tmp/fd-e2e.yC8P/home",
+  "roots": {
+    "fm_root": "/tmp/fd-e2e.yC8P/home",
+    "state": "/tmp/fd-e2e.yC8P/home/state",
+    "data": "/tmp/fd-e2e.yC8P/home/data",
+    "config": "/tmp/fd-e2e.yC8P/home/config",
+    "projects": "/tmp/fd-e2e.yC8P/home/projects"
+  },
+  "backlog": {
+    "path": "/tmp/fd-e2e.yC8P/home/data/backlog.md",
+    "present": true,
+    "records": [
+      {
+        "order": 1,
+        "state": "queued",
+        "structured": true,
+        "id": "ww-nav",
+        "checked": false,
+        "title": "Decide the nav shape",
+        "repo": "writing-workbench",
+        "kind": "scout",
+        "priority": null,
+        "hold_reason": "Captain: pick tabs or sidebar",
+        "hold_kind": "captain",
+        "hold_until": null,
+        "hold_set": null,
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": "2026-10-10",
+        "merged": null,
+        "reported": null,
+        "done": null,
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "raw": "- [ ] ww-nav - Decide the nav shape (repo: writing-workbench) (kind: scout) (since 2026-10-10) (hold: Captain: pick tabs or sidebar) (hold-kind: captain)",
+        "body_lines": [],
+        "body_excerpt": null,
+        "unresolved_blocker_ids": [],
+        "current_role": "queued",
+        "requires_child_metadata": false,
+        "hold_age_days": 0,
+        "hold_bucket": "live",
+        "captain_actionable": true
+      }
+    ]
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/tmp/fd-e2e.yC8P/home/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-10T18:12:01Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}
