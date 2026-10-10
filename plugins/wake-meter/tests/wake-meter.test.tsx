@@ -23,9 +23,9 @@ function world(on: On, env: Record<string, string> = {}, root = HOME): World {
   mock.clock(on, { now: Date.UTC(2026, 9, 10, 12) })
   on('session.root', () => ({ value: root }))
   on('fs.stat', ($, e) => {
-    const kind = { [`${HOME}/bin/fm-session-start.sh`]: 'file', [`${HOME}/state`]: 'dir' }[e.path]
+    const kind = ({ [`${HOME}/bin/fm-session-start.sh`]: 'file', [`${HOME}/state`]: 'dir' } as const)[e.path]
     if (kind === undefined) throw new Error('ENOENT')
-    return { value: { kind, size: 0, mtimeMs: 0, isLink: false } } as const
+    return { value: { kind, size: 0, mtimeMs: 0, isLink: false } }
   })
   on('session.usage', () => ({ value: w.usage }))
   on('ui.status', ($, e) => { w.statuses.push(e.text); return { value: undefined } })
