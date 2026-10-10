@@ -14,6 +14,11 @@
       "name": "crew-seatbelt",
       "source": "./plugins/crew-seatbelt",
       "description": "Refuses the shell actions that have cost firstmate workers their work or moved the captain's screen; active only in worker sessions."
+    },
+    {
+      "name": "guard-translator",
+      "source": "./plugins/guard-translator",
+      "description": "Explains a firstmate guard refusal in plain words and offers the fixed command."
     }
   ]
 }
