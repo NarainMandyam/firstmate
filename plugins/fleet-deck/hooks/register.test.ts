@@ -24,7 +24,7 @@ const pane = (title: string): RenderPropsOf['Pane'] => ({
   view: {},
 })
 
-type Fixture = { calls: string[] }
+type Fixture = { calls: string[]; snapshotFails?: boolean }
 
 const PR_URL = 'https://github.com/NarainMandyam/MealPrepper/pull/2'
 
@@ -113,6 +113,7 @@ const arm = (
   const runs: Run[] = []
   const notified: string[] = []
   const fills: string[] = []
+  const toasts: string[] = []
   mock.env(on, world.env ?? {})
   const clock = mock.clock(on, { now: NOW })
   mock.store(on, world.store)
@@ -130,7 +131,11 @@ const arm = (
   on('process.run', ($, e) => {
     runs.push({ argv: e.argv, stdin: e.init?.stdin })
     const script = e.argv[0] ?? ''
-    if (script.endsWith('/bin/fm-fleet-snapshot.sh')) return { value: ok(JSON.stringify(snapshot(world.fixture()))) }
+    if (script.endsWith('/bin/fm-fleet-snapshot.sh')) {
+      const fixture = world.fixture()
+      if (fixture.snapshotFails) return { value: { ...ok(''), exitCode: 1, stderr: 'state unreadable' } }
+      return { value: ok(JSON.stringify(snapshot(fixture))) }
+    }
     if (script === 'df') return { value: ok(DF) }
     if (script.endsWith('/bin/fm-captain-hold.sh')) return { value: ok('answered\n') }
     if (script.endsWith('/bin/fm-inbox.sh')) return { value: ok('queued 1\n') }
@@ -141,7 +146,10 @@ const arm = (
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('ui.open', () => ({ value: { isPlaced: true as const } }))
   on('ui.close', () => ({ value: undefined }))
-  on('ui.toast', () => ({ value: undefined }))
+  on('ui.toast', ($, e) => {
+    toasts.push(e.text)
+    return { value: undefined }
+  })
   on('ui.notify', ($, e) => {
     notified.push(e.text)
     return { value: { isSent: true as const, channel: 'kitty' as const } }
@@ -157,7 +165,7 @@ const arm = (
     const { Box, Text } = $.ui.resolve(e)
     return h(Box, { key: 'engine-own' }, h(Text, null, 'engine band')) as RenderElement
   })
-  return { runs, notified, fills, clock }
+  return { runs, notified, fills, toasts, clock }
 }
 
 const scriptsRun = (runs: readonly Run[]) => runs.map(r => (r.argv[0] ?? '').split('/').pop())
@@ -202,6 +210,8 @@ test('band and panes draw the fleet on terminal and desktop, and every control r
     expect(world.runs.slice(before).map(r => r.argv)).toEqual([
       [`${HOME}/bin/fm-captain-hold.sh`, 'answers', '--source', 'captain-deck'],
       [`${HOME}/bin/fm-inbox.sh`, 'note', 'Deck: captain answered ww-nav (close the call): ship the timeline first'],
+      // The read that follows a recorded answer is never skipped by the press floor.
+      [`${HOME}/bin/fm-fleet-snapshot.sh`, '--json'],
     ])
     expect(world.runs[before]?.stdin).toBe('ww-nav\tship the timeline first\tdeck: answer\tdone\n')
     expect((await calls.find({ key: 'notice' }))?.text).toContain('recorded ww-nav')
@@ -210,6 +220,7 @@ test('band and panes draw the fleet on terminal and desktop, and every control r
     await calls.press({ key: 'go:ww-nav' })
     expect(world.runs[beforeGo]?.stdin).toBe('ww-nav\tgo\tdeck: go\trelease\n')
     expect(world.runs[beforeGo + 1]?.argv[1]).toBe('note')
+    expect(world.runs[beforeGo + 2]?.argv[1]).toBe('--json')
 
     const beforeMerge = world.runs.length
     await calls.press({ key: 'merge:mp-b' })
@@ -271,10 +282,32 @@ test('alerts only when something new needs the captain', async ($, on) => {
   calls = ['ww-nav', 'ww-outline']
   await world.clock.advance(60_000)
   expect(world.notified).toHaveLength(1)
+  expect(world.toasts).toEqual([])
   expect(world.notified[0]).toContain('Decide ww-outline')
   expect(world.notified[0]).not.toContain('ww-nav')
 
   await world.clock.advance(60_000)
   expect(world.notified).toHaveLength(1)
   expect(scriptsRun(world.runs).filter(s => s === 'fm-fleet-snapshot.sh')).toHaveLength(3)
+})
+
+test('a snapshot failure shows on the band until the next snapshot succeeds', async ($, on) => {
+  let snapshotFails = true
+  const world = arm(on, { fixture: () => ({ calls: ['ww-nav'], snapshotFails }) })
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+  await world.clock.advance(2_000)
+  for (const surface of SURFACES) {
+    const band = await $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: BAND })
+    expect(await band.find({ type: 'Text', text: /fleet snapshot failed \(exit 1\)/ })).toBeDefined()
+    await band.unmount()
+  }
+
+  snapshotFails = false
+  await world.clock.advance(60_000)
+  for (const surface of SURFACES) {
+    const band = await $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: BAND })
+    expect((await band.find({ key: 'chip-calls' }))?.text).toContain('1 call for you')
+    expect(await band.find({ key: 'chip-notice' })).toBeUndefined()
+    await band.unmount()
+  }
 })

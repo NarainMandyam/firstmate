@@ -45,6 +45,9 @@ const SNAPSHOT_TIMEOUT_MS = 50_000
 const COMMAND_TIMEOUT_MS = 20_000
 const PEEK_LINES = 40
 const STORE_ALERTED = 'alerted-keys'
+// Every snapshot-failure notice starts with this, so a later success can clear
+// it without touching an answer or merge notice.
+const SNAPSHOT_NOTICE = 'fleet snapshot'
 
 const deckAtom = atom({ plugin: 'fleet-deck', key: 'deck' } as const, null)
 const vitalsAtom = atom({ plugin: 'fleet-deck', key: 'vitals' } as const, {
@@ -126,7 +129,7 @@ const readVitals = async ($: Dollar, now: number): Promise<DeckVitals> => {
   }
 }
 
-/** Desktop alert and toast only for keys that just appeared. */
+/** One native notification, only for keys that just appeared; nothing else notifies. */
 const announce = async ($: Dollar, deck: Deck, vitals: DeckVitals) => {
   const keys = alertKeys(deck, vitals)
   const previous = alerted
@@ -135,12 +138,13 @@ const announce = async ($: Dollar, deck: Deck, vitals: DeckVitals) => {
   if (previous === null) return
   const fresh = keys.filter(k => !previous.has(k))
   if (fresh.length === 0) return
-  const line = describeKeys(fresh, deck)
-  $.ui.toast(`Needs you: ${line}`, { timeoutMs: 8_000 })
-  await $.ui.notify(line, { title: 'Firstmate needs you' }).catch(() => undefined)
+  await $.ui.notify(describeKeys(fresh, deck), { title: 'Firstmate needs you' }).catch(() => undefined)
 }
 
-const refresh = async ($: Dollar, origin: 'timer' | 'press') => {
+// `timer` is the poll, `press` a manual refresh bounded by the press floor, and
+// `write` the read that follows a recorded answer, which must not be skipped:
+// a stale card invites a repeat press and a duplicate inbox note.
+const refresh = async ($: Dollar, origin: 'timer' | 'press' | 'write') => {
   if (home === null || isRefreshing) return
   const now = await $.clock.now()
   if (origin === 'press' && now - lastRefreshAt < PRESS_REFRESH_FLOOR_MS) return
@@ -149,7 +153,7 @@ const refresh = async ($: Dollar, origin: 'timer' | 'press') => {
   try {
     const ran = await run($, [bin('fm-fleet-snapshot.sh'), '--json'], { timeoutMs: SNAPSHOT_TIMEOUT_MS })
     if (ran.exitCode !== 0 || ran.isStdoutTruncated) {
-      await setNotice($, `fleet snapshot failed (exit ${ran.exitCode}): ${cut(ran.stderr, 100)}`)
+      await setNotice($, `${SNAPSHOT_NOTICE} failed (exit ${ran.exitCode}): ${cut(ran.stderr, 100)}`)
       return
     }
     polls += 1
@@ -157,9 +161,10 @@ const refresh = async ($: Dollar, origin: 'timer' | 'press') => {
     const vitals = await readVitals($, now)
     await update($, deckAtom, () => deck)
     await update($, vitalsAtom, () => vitals)
+    await update($, noticeAtom, notice => (notice !== null && notice.startsWith(SNAPSHOT_NOTICE) ? null : notice))
     await announce($, deck, vitals)
   } catch (error) {
-    await setNotice($, `fleet snapshot error: ${cut(String(error), 100)}`)
+    await setNotice($, `${SNAPSHOT_NOTICE} error: ${cut(String(error), 100)}`)
   } finally {
     isRefreshing = false
   }
@@ -199,7 +204,7 @@ const answerCall = async ($: Dollar, id: string, raw: string, mode: 'done' | 're
   } else {
     await setNotice($, `recorded ${id}: ${cut(answer, 80)}`)
   }
-  void refresh($, 'press')
+  void refresh($, 'write')
 }
 
 /** Merge never merges: it asks firstmate, who holds the merge authority. */

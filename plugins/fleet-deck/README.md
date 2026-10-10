@@ -8,7 +8,7 @@ A Claude Code mod for firstmate's primary session: the captain's deck.
 - A Calls pane (`/deck`, or the `Calls` button): one card per captain call with an answer field, a `Go: resume the held work` button, and a `reply in chat` button that puts `On <id>: ` in the prompt.
   Below the calls, every PR waiting for a merge with a `Merge (asks firstmate)` button, and every worker that is blocked or waiting on a decision.
 - A Fleet pane (`/crew`, or the `Fleet` button): one row per task with repo, state and detail; a row's hotkey or press shows the last 40 lines of that worker's pane, and a `state` button reads its current state.
-- One desktop notification and one toast only when something new starts needing the captain: a new call, a newly recorded PR, a newly blocked worker, monitoring quiet for ten minutes while work runs, or the disk at or above 90 percent.
+- One native desktop notification, and nothing else, only when something new starts needing the captain: a new call, a newly recorded PR, a newly blocked worker, monitoring quiet for ten minutes while work runs, or the disk at or above 90 percent.
   The first snapshot of a session seeds the known set silently, and the set survives restarts.
 
 The band never types into the session and never submits a prompt.
