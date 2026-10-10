@@ -493,6 +493,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "plugins/crew-seatbelt/README.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "plugins/wake-meter/README.md",
       "audience": "operator-current"
     },
