@@ -28,8 +28,10 @@
 # area AGENTS.md files; the warning is detect-only and never changes the exit
 # status or the files. Run it on an area directory to create that area's own
 # AGENTS.md and CLAUDE.md pointer.
-# This is a worktree utility for crewmates, not a supervision script, so it does
-# not call fm-guard.sh.
+# This is a manual project-initialization utility, not a supervision script,
+# so it does not call fm-guard.sh. No brief calls it: the sections it inserts
+# and the pointer it creates are additions, and AGENTS.md section 6 bounds
+# crewmate edits of project memory files to correcting the wrong text only.
 # Usage: fm-ensure-agents-md.sh [repo-or-worktree-dir]
 set -eu
 
@@ -131,7 +133,7 @@ write_skeleton() {
 
 This file is the project's committed home for project-intrinsic agent knowledge: build, test, release, architecture, and sharp-edge notes that should travel with the code.
 
-- Add durable project-specific notes here as they are discovered through real work.
+- Correct entries that work proves wrong; add new ones only by deliberate maintainer choice, never as routine task output.
 EOF
   ensure_maintenance_section
 }
