@@ -9,6 +9,11 @@
       "name": "wake-meter",
       "source": "./plugins/wake-meter",
       "description": "Shows what firstmate's notifications cost in its primary session and nudges a restart when context grows."
+    },
+    {
+      "name": "crew-seatbelt",
+      "source": "./plugins/crew-seatbelt",
+      "description": "Refuses the shell actions that have cost firstmate workers their work or moved the captain's screen; active only in worker sessions."
     }
   ]
 }
