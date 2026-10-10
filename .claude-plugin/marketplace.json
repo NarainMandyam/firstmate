@@ -29,6 +29,11 @@
       "name": "fleet-deck",
       "source": "./plugins/fleet-deck",
       "description": "The captain's deck for firstmate's primary session: a band with calls, workers, PRs, monitoring and disk, a Calls pane that records answers, and a Fleet pane with a peek key."
+    },
+    {
+      "name": "nm-monitor",
+      "source": "./plugins/nm-monitor",
+      "description": "An on-demand pane, opened with /nm, showing every no-mistakes run in the fleet: step and time on it, findings, decisions waiting, and PR links. Read-only."
     }
   ]
 }

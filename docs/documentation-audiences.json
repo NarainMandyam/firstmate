@@ -537,6 +537,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "plugins/nm-monitor/README.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "plugins/wake-meter/README.md",
       "audience": "operator-current"
     },
