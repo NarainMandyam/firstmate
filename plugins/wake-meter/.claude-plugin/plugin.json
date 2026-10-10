@@ -1,0 +1,23 @@
+{
+  "name": "wake-meter",
+  "version": "0.1.0",
+  "description": "Shows what firstmate's notifications cost in its primary session and nudges a restart when context grows.",
+  "author": {
+    "name": "Narain Mandyam"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "restartAtTokens": {
+      "type": "number",
+      "title": "Restart nudge threshold",
+      "description": "Context size, in tokens, past which an idle notification turn raises a restart toast (again every 50k more).",
+      "default": 250000
+    },
+    "foldWakeRows": {
+      "type": "boolean",
+      "title": "Fold notification rows",
+      "description": "Draw each firstmate notification row in the transcript as one dim line (ctrl+o still shows it whole). Off by default until confirmed against a live session.",
+      "default": false
+    }
+  }
+}
