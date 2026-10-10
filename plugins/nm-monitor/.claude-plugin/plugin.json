@@ -1,0 +1,9 @@
+{
+  "name": "nm-monitor",
+  "version": "0.1.0",
+  "description": "An on-demand pane in firstmate's primary session showing every no-mistakes validation run across the fleet: step, time on it, findings, decisions waiting, and PR links. Hidden until /nm opens it; read-only.",
+  "author": {
+    "name": "firstmate"
+  },
+  "types": "./types/index.d.ts"
+}
