@@ -1,0 +1,12 @@
+$ claude plugin test plugins/fleet-deck
+
+hooks/register.test.ts:
+(pass) band and panes draw the fleet on terminal and desktop, and every control routes through firstmate [525.80ms]
+(pass) an answer recorded while a poll is in flight is followed by a fresh snapshot [221.02ms]
+(pass) stays inert in a worker session [90.49ms]
+(pass) alerts only when something new needs the captain [112.88ms]
+(pass) a snapshot failure shows on the band until the next snapshot succeeds [113.36ms]
+
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [1.68s]

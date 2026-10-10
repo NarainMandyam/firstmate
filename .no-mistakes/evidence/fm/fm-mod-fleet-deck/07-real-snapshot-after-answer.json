@@ -1,0 +1,149 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-10T18:07:11Z",
+  "fm_home": "/tmp/fd-home",
+  "roots": {
+    "fm_root": "/Users/narain/.no-mistakes/worktrees/c01ca8b8861e/01M4KFG62ZEQF5MFQ9WY2ZET8V",
+    "state": "/tmp/fd-home/state",
+    "data": "/tmp/fd-home/data",
+    "config": "/tmp/fd-home/config",
+    "projects": "/tmp/fd-home/projects"
+  },
+  "backlog": {
+    "path": "/tmp/fd-home/data/backlog.md",
+    "present": true,
+    "records": [
+      {
+        "order": 1,
+        "state": "queued",
+        "structured": true,
+        "id": "ww-outline",
+        "checked": false,
+        "title": "Choose the outline style",
+        "repo": "writing-workbench",
+        "kind": "captain",
+        "priority": null,
+        "hold_reason": "nested or flat",
+        "hold_kind": "captain",
+        "hold_until": null,
+        "hold_set": "2026-10-10T18:05:42Z",
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": "2026-10-10",
+        "merged": null,
+        "reported": null,
+        "done": null,
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "raw": "- [ ] ww-outline - Choose the outline style (repo: writing-workbench) (kind: captain) (since 2026-10-10) (hold: nested or flat) (hold-kind: captain)",
+        "body_lines": [
+          "Captain hold set: 2026-10-10T18:05:42Z"
+        ],
+        "body_excerpt": "Captain hold set: 2026-10-10T18:05:42Z",
+        "unresolved_blocker_ids": [],
+        "current_role": "queued",
+        "requires_child_metadata": false,
+        "hold_age_days": 0,
+        "hold_bucket": "live",
+        "captain_actionable": true
+      },
+      {
+        "order": 2,
+        "state": "done",
+        "structured": true,
+        "id": "ww-nav",
+        "checked": true,
+        "title": "Decide the navigation order",
+        "repo": "writing-workbench",
+        "kind": "captain",
+        "priority": null,
+        "hold_reason": "pick timeline-first or outline-first",
+        "hold_kind": "captain",
+        "hold_until": null,
+        "hold_set": null,
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": null,
+        "merged": null,
+        "reported": null,
+        "done": "2026-10-10",
+        "completion": {
+          "verb": "done",
+          "date": "2026-10-10"
+        },
+        "links": [],
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "raw": "- [x] ww-nav - Decide the navigation order (repo: writing-workbench) (kind: captain) (done 2026-10-10) (hold: pick timeline-first or outline-first) (hold-kind: captain)",
+        "body_lines": [
+          "Resolution recorded by fm-captain-hold.",
+          "Decision digest: 12a5aa7601bfd40694aadd8923da9d509530b2bb01788588f4f0416c80004165",
+          "Resolution mode: answered",
+          "Captain decision:",
+          "Captain answered this call through captain-deck.",
+          "Task: ww-nav",
+          "Answer: timeline first",
+          "Answer as shown to the captain: deck: answer"
+        ],
+        "body_excerpt": "Resolution recorded by fm-captain-hold. Decision digest: 12a5aa7601bfd40694aadd8923da9d509530b2bb01788588f4f0416c80004165 Resolution mode: answered Captain decision: Captain answered this call through captain-deck. Task: ww-nav Answer: time",
+        "unresolved_blocker_ids": [],
+        "current_role": "done",
+        "requires_child_metadata": false,
+        "hold_age_days": null,
+        "hold_bucket": null,
+        "captain_actionable": false
+      }
+    ]
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/tmp/fd-home/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-10T18:07:11Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}

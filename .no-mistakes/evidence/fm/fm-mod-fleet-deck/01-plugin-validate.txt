@@ -1,0 +1,28 @@
+$ claude plugin validate plugins/fleet-deck
+Validating plugin manifest: /Users/narain/.no-mistakes/worktrees/c01ca8b8861e/01M4KFG62ZEQF5MFQ9WY2ZET8V/plugins/fleet-deck/.claude-plugin/plugin.json
+
+  ❯ types ./types/index.d.ts declares on $: nothing (no EngineInterface member)
+  ❯ types ./types/index.d.ts declares state: fleet-deck.deck, fleet-deck.vitals, fleet-deck.isHidden, fleet-deck.peek, fleet-deck.notice
+
+Validating hooks: /Users/narain/.no-mistakes/worktrees/c01ca8b8861e/01M4KFG62ZEQF5MFQ9WY2ZET8V/plugins/fleet-deck/hooks/hooks.json
+
+  ❯ ./register.tsx hooks: session.start, session.end, command.run{command=deck}, command.run{command=crew}, ui.render{component=AbovePrompt}, ui.render{component=Pane, requestId=fleet-calls}, ui.render{component=Pane, requestId=fleet-crew}
+  ❯ ./register.tsx answers its own command: command.run{command=deck}
+  ❯ ./register.tsx answers its own command: command.run{command=crew}
+  ❯ ./register.tsx calls: $.clock.after, $.clock.every, $.clock.now, $.command.register, $.env.get (via resolveHome), $.fs.exists (via resolveHome), $.fs.stat (via readVitals, resolveHome), $.process.run (via run), $.prompt.fill, $.session.root (via resolveHome), $.state.get, $.state.set, $.store.get (via loadAlerted), $.store.set (via announce), $.ui.close, $.ui.copy, $.ui.notify (via announce), $.ui.open (via openPane), $.ui.resolve, $.ui.toast (via answerCall)
+  ❯ ./register.tsx env writes: nothing
+  ❯ ./register.tsx env reads: FM_HOME, FM_TASK_ID
+  ❯ ./register.tsx state writes: fleet-deck.deck, fleet-deck.isHidden, fleet-deck.notice, fleet-deck.peek, fleet-deck.vitals
+  ❯ ./register.tsx state reads: fleet-deck.deck, fleet-deck.isHidden, fleet-deck.notice, fleet-deck.peek, fleet-deck.vitals
+
+✔ Validation passed
+
+$ claude plugin validate .   (repo marketplace)
+Validating marketplace manifest: /Users/narain/.no-mistakes/worktrees/c01ca8b8861e/01M4KFG62ZEQF5MFQ9WY2ZET8V/.claude-plugin/marketplace.json
+
+⚠ Found 2 warnings:
+
+  ❯ plugins[1] plugin.json → author: No author information provided. Consider adding author details for plugin attribution
+  ❯ plugins[2] plugin.json → author: No author information provided. Consider adding author details for plugin attribution
+
+✔ Validation passed with warnings

@@ -1,0 +1,138 @@
+# claude plugin test on a scratch copy of plugins/fleet-deck with 03-scenario-tests.live.test.ts; SNAP1/SNAP2 are real fm-fleet-snapshot.sh --json output from a throwaway firstmate home
+SNAPRUN {"argv":["/tmp/fd-home/bin/fm-fleet-snapshot.sh","--json"],"timeoutMs":50000}
+==band-terminal==
+⚓ 2 calls for you
+0 working
+monitor 11s
+disk 71%
+-- buttons --
+[Calls] (c)  key=open-calls
+[Fleet] (f)  key=open-crew
+[hide]  key=hide
+==end band-terminal==
+==calls-terminal==
+Decisions (2)
+Decide the navigation order
+writing-workbench · ww-nav
+pick timeline-first or outline-first
+<input answer:ww-nav>
+Choose the outline style
+writing-workbench · ww-outline
+nested or flat
+<input answer:ww-outline>
+Answers are recorded in firstmate's own records and firstmate is woken to act; Merge only asks.
+-- buttons --
+[Go: resume the held work]  key=go:ww-nav
+[reply in chat]  key=draft:ww-nav
+[Go: resume the held work]  key=go:ww-outline
+[reply in chat]  key=draft:ww-outline
+[refresh] (r)  key=refresh-calls
+[close]  key=close-calls
+==end calls-terminal==
+ANSWER_RUNS [{"argv":["/tmp/fd-home/bin/fm-captain-hold.sh","answers","--source","captain-deck"],"stdin":"ww-nav\ttimeline first\tdeck: answer\tdone\n","timeoutMs":20000},{"argv":["/tmp/fd-home/bin/fm-inbox.sh","note","Deck: captain answered ww-nav (close the call): timeline first"],"timeoutMs":20000},{"argv":["/tmp/fd-home/bin/fm-fleet-snapshot.sh","--json"],"timeoutMs":50000}]
+==calls-after-answer==
+recorded ww-nav: timeline first
+Decisions (2)
+Decide the navigation order
+writing-workbench · ww-nav
+pick timeline-first or outline-first
+<input answer:ww-nav>
+Choose the outline style
+writing-workbench · ww-outline
+nested or flat
+<input answer:ww-outline>
+Answers are recorded in firstmate's own records and firstmate is woken to act; Merge only asks.
+-- buttons --
+[Go: resume the held work]  key=go:ww-nav
+[reply in chat]  key=draft:ww-nav
+[Go: resume the held work]  key=go:ww-outline
+[reply in chat]  key=draft:ww-outline
+[refresh] (r)  key=refresh-calls
+[close]  key=close-calls
+==end calls-after-answer==
+==band-desktop==
+⚓ 2 calls for you
+0 working
+monitor 11s
+disk 71%
+recorded ww-nav: timeline first
+-- buttons --
+[Calls] (c)  key=open-calls
+[Fleet] (f)  key=open-crew
+[hide]  key=hide
+==end band-desktop==
+==calls-desktop==
+recorded ww-nav: timeline first
+Decisions (2)
+Decide the navigation order
+writing-workbench · ww-nav
+pick timeline-first or outline-first
+<input answer:ww-nav>
+Choose the outline style
+writing-workbench · ww-outline
+nested or flat
+<input answer:ww-outline>
+Answers are recorded in firstmate's own records and firstmate is woken to act; Merge only asks.
+-- buttons --
+[Go: resume the held work]  key=go:ww-nav
+[reply in chat]  key=draft:ww-nav
+[Go: resume the held work]  key=go:ww-outline
+[reply in chat]  key=draft:ww-outline
+[refresh] (r)  key=refresh-calls
+[close]  key=close-calls
+==end calls-desktop==
+STORE_AFTER_SESSION1 {}
+NOTIFIED ["decision: Choose the outline style"]
+VITAL_NOTIFIED ["monitoring has gone quiet while work is running","disk is nearly full"]
+==band-vitals-alarm==
+⚓ 2 calls for you
+1 working
+monitor 19m
+disk 95%
+-- buttons --
+[Calls] (c)  key=open-calls
+[Fleet] (f)  key=open-crew
+[hide]  key=hide
+==end band-vitals-alarm==
+PRESTORED_NOTIFIED ["decision: Choose the outline style"]
+==band-after-roundtrip==
+⚓ 1 call for you
+0 working
+monitor 1m
+disk 71%
+-- buttons --
+[Calls] (c)  key=open-calls
+[Fleet] (f)  key=open-crew
+[hide]  key=hide
+==end band-after-roundtrip==
+==calls-after-roundtrip==
+Decisions (1)
+Choose the outline style
+writing-workbench · ww-outline
+nested or flat
+<input answer:ww-outline>
+Answers are recorded in firstmate's own records and firstmate is woken to act; Merge only asks.
+-- buttons --
+[Go: resume the held work]  key=go:ww-outline
+[reply in chat]  key=draft:ww-outline
+[refresh] (r)  key=refresh-calls
+[close]  key=close-calls
+==end calls-after-roundtrip==
+
+hooks/live.test.ts:
+(pass) LIVE: real fm-fleet-snapshot.v1 output drives band and calls pane; answer emits keyed line [288.03ms]
+(pass) RESTART: a restart does not re-notify known items, but does notify one that is new [143.57ms]
+(pass) VITALS: quiet monitor while working and disk >= 90% notify once each; healthy vitals do not [233.40ms]
+(pass) INERT: root is not a firstmate home (no AGENTS.md) [104.51ms]
+(pass) INERT: root is not a firstmate home (no fm-captain-hold.sh) [82.45ms]
+(pass) INERT: root is a secondmate home [85.29ms]
+(pass) INERT: FM_HOME resolves to a different home [83.68ms]
+(pass) INERT: FM_TASK_ID set (worker), even empty [90.38ms]
+(pass) CONTROL: FM_HOME equal to the root keeps the deck live [86.67ms]
+(pass) RESTART-STORE: a persisted set from an earlier session is honoured on the first snapshot [98.66ms]
+(pass) RESTART-STORE: both already known -> a restart is silent [84.86ms]
+(pass) ROUNDTRIP: after the real answer closed ww-nav, the next real snapshot leaves one call and no new alert [139.65ms]
+
+ 12 pass
+ 0 fail
+Ran 12 tests across 1 file. [2.12s]

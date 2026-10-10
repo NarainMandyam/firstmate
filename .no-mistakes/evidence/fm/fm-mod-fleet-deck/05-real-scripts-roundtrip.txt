@@ -1,0 +1,47 @@
+$ # the exact stdin line the deck sent (TABs shown as 	):
+ww-nav\ttimeline first\tdeck: answer\tdone
+$ printf "<line>" | bin/fm-captain-hold.sh answers --source captain-deck
+closed: ww-nav
+answers: closed=1 skipped=0
+exit=0
+$ bin/fm-inbox.sh note "<deck note>"
+queued 1791655628-LLfLyp
+  Deck: captain answered ww-nav (close the call): timeline first
+  firstmate will pick this up at its next check.
+exit=0
+$ bin/fm-inbox.sh list
+1791655628-LLfLyp
+    Deck: captain answered ww-nav (close the call): timeline first
+$ # replay the same press (duplicate) :
+closed: ww-nav
+answers: closed=1 skipped=0
+exit=0
+$ data/backlog.md after:
+## In flight
+
+## Queued
+- [ ] ww-outline - Choose the outline style (repo: writing-workbench) (kind: captain) (since 2026-10-10) (hold: nested or flat) (hold-kind: captain)
+  Captain hold set: 2026-10-10T18:05:42Z
+## Done
+- [x] ww-nav - Decide the navigation order (repo: writing-workbench) (kind: captain) (done 2026-10-10) (hold: pick timeline-first or outline-first) (hold-kind: captain)
+  Resolution recorded by fm-captain-hold.
+  Decision digest: 12a5aa7601bfd40694aadd8923da9d509530b2bb01788588f4f0416c80004165
+  Resolution mode: answered
+
+  Captain decision:
+  Captain answered this call through captain-deck.
+  Task: ww-nav
+  Answer: timeline first
+  Answer as shown to the captain: deck: answer
+
+$ fm-fleet-snapshot.sh --json | live captain calls:
+["ww-outline"]
+$ # Go press on ww-outline sends: ww-outline	go	deck: go	release
+closed: ww-outline
+answers: closed=1 skipped=0
+exit=0
+- [ ] ww-outline - Choose the outline style (repo: writing-workbench) (kind: captain) (since 2026-10-10)
+  Resolution recorded by fm-captain-hold.
+--
+$ live captain calls now:
+[]
