@@ -493,6 +493,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "plugins/wake-meter/README.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "skills/stow/SKILL.md",
       "audience": "public-product"
     }
