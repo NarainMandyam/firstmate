@@ -94,7 +94,7 @@ describe('wake meter', () => {
     const w = world(on)
     await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
     await wakeTurn($, w, 180_000)
-    const ran = await $.command.run({ command: 'wakes' })
+    const ran = await $.command.run({ command: 'wakes', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
     expect(ran.text).toBe('wakes 1 (1 idle) today · last cost 1.1M · ctx 180k\n5h 59% left, resets in 2h 10m · wk 81% left, resets in 3d 4h')
   })
 
