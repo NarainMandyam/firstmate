@@ -1,0 +1,5 @@
+{
+  "name": "crew-seatbelt",
+  "version": "0.1.0",
+  "description": "Refuses the shell actions that have cost firstmate workers their work or moved the captain's screen; active only in worker sessions."
+}
