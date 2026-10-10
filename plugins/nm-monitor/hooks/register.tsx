@@ -327,6 +327,9 @@ export const register: Register = on => {
             {f.file === '' ? '' : ` · ${f.file}`} · {f.description}
           </Text>
         ))}
+        {row.findings.length === 0 && row.findingsNote !== null && (
+          <Text key="findings-note" dimColor>findings: {row.findingsNote}</Text>
+        )}
         {row.findings.length > FINDINGS_SHOWN && (
           <Text key="more" dimColor>+{row.findings.length - FINDINGS_SHOWN} more</Text>
         )}
@@ -380,6 +383,11 @@ export const register: Register = on => {
                   <Text key="findings" {...(askUser > 0 ? { color: 'warning' } : { dimColor: true })}>
                     · {findings} finding{findings === 1 ? '' : 's'}
                     {askUser > 0 ? ` (${askUser} ask-user)` : ''}
+                  </Text>
+                )}
+                {findings === 0 && row.findingsNote !== null && (
+                  <Text key="findings-note" {...(/awaiting|ask-user/.test(row.findingsNote) ? { color: 'warning' } : { dimColor: true })}>
+                    · findings: {row.findingsNote}
                   </Text>
                 )}
                 {row.isWaiting && <Text key="waiting" color="warning" bold>· ⏸ waiting on a decision</Text>}

@@ -42,8 +42,10 @@ runs[3]{id,branch,status,head,pr}:
   "01RUNX",fm/mp-other,completed,1111111,"https://github.com/NarainMandyam/MealPrepper/pull/1"
 `
 
-// `axi status --run 01RUNCORE`: parked at the review gate four minutes in.
-const MP_CORE_RUN = `run:
+// `axi status --run 01RUNCORE` from the primary copy on main: parked at the
+// review gate four minutes in.
+const MP_CORE_RUN = `current_branch: main
+other_branch_run:
   id: "01RUNCORE"
   branch: fm/mp-core
   status: running

@@ -27,6 +27,8 @@ export type NmRow = {
   /** Epoch ms the current step started, as near as the run reports it. */
   stepSince: number | null
   findings: NmFinding[]
+  /** The run's own findings summary when it lists no table, such as `2 awaiting, 1 auto-fix`. */
+  findingsNote: string | null
   isWaiting: boolean
   pr: string | null
   error: string | null

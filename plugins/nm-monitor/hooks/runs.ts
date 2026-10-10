@@ -6,7 +6,10 @@
 // run, it prints that run (`run:` block, `steps[N]{...}` table, optional
 // `gate`, `outcome`, `error`); anywhere else (a default branch, a detached
 // head) it lists the repository's runs newest first as
-// `runs[N]{id,branch,status,head,pr}`. `axi status --run <id>` prints one run.
+// `runs[N]{id,branch,status,head,pr}`. `axi status --run <id>` prints one
+// run, under `other_branch_run:` when the checkout is on another branch.
+// A run's `findings` is a table, `none`, or a summary such as
+// `"2 awaiting, 1 auto-fix"`.
 import type { NmFinding, NmRow, NmStep } from '../types'
 
 export type NmRun = {
@@ -20,6 +23,7 @@ export type NmRun = {
   gateStatus: string | null
   steps: NmStep[]
   findings: NmFinding[]
+  findingsNote: string | null
 }
 
 export type NmListed = { id: string; branch: string; status: string; pr: string | null }
@@ -38,6 +42,7 @@ export type TaskMeta = {
 const TERMINAL = new Set(['completed', 'passed', 'failed', 'cancelled'])
 const SETTLED_STEP = new Set(['completed', 'passed', 'pending', 'skipped'])
 const PARKED = new Set(['awaiting_approval', 'fix_review'])
+const RUN_BLOCKS = ['run', 'other_branch_run']
 
 const indentOf = (line: string): number => line.length - line.trimStart().length
 
@@ -129,7 +134,8 @@ const nonEmpty = (value: string | null | undefined): string | null =>
 /** Reads one `axi status` answer. */
 export const parseStatus = (stdout: string): NmStatus => {
   const lines = stdout.split('\n')
-  if (lines.some(line => line.trimEnd() === 'run:')) {
+  const block = RUN_BLOCKS.find(name => lines.some(line => line.trimEnd() === `${name}:`))
+  if (block !== undefined) {
     const steps = (table(lines, 'steps') ?? []).map(row => ({
       step: row.step ?? '',
       status: row.status ?? '',
@@ -147,16 +153,17 @@ export const parseStatus = (stdout: string): NmStatus => {
     return {
       kind: 'run',
       run: {
-        id: scalar(lines, 'id', 'run') ?? '',
-        branch: scalar(lines, 'branch', 'run') ?? '',
-        status: scalar(lines, 'status', 'run') ?? '',
-        pr: nonEmpty(scalar(lines, 'pr', 'run')),
+        id: scalar(lines, 'id', block) ?? '',
+        branch: scalar(lines, 'branch', block) ?? '',
+        status: scalar(lines, 'status', block) ?? '',
+        pr: nonEmpty(scalar(lines, 'pr', block)),
         outcome: nonEmpty(scalar(lines, 'outcome', null)),
         error: nonEmpty(scalar(lines, 'error', null)),
         gateStep: gateScalar ?? nonEmpty(scalar(lines, 'step', 'gate')),
         gateStatus: nonEmpty(scalar(lines, 'status', 'gate')),
         steps,
         findings,
+        findingsNote: findings.length > 0 ? null : nonEmpty(scalar(lines, 'findings', block)?.replace(/^none$/, '')),
       },
     }
   }
@@ -235,11 +242,11 @@ export const projectRow = (
     branch: taskBranch(meta.id),
   }
   if (run === null) {
-    return { ...base, runId: null, phase: 'none', status: 'no run yet', step: null, stepSince: null, findings: [], isWaiting: false, pr: meta.pr, error: null, steps: [] }
+    return { ...base, runId: null, phase: 'none', status: 'no run yet', step: null, stepSince: null, findings: [], findingsNote: null, isWaiting: false, pr: meta.pr, error: null, steps: [] }
   }
   if (!('steps' in run)) {
     const finished = TERMINAL.has(run.status)
-    return { ...base, runId: run.id, phase: finished ? 'finished' : 'active', status: run.status, step: null, stepSince: null, findings: [], isWaiting: false, pr: run.pr ?? meta.pr, error: null, steps: [] }
+    return { ...base, runId: run.id, phase: finished ? 'finished' : 'active', status: run.status, step: null, stepSince: null, findings: [], findingsNote: null, isWaiting: false, pr: run.pr ?? meta.pr, error: null, steps: [] }
   }
   const active = isActive(run)
   const step = active ? currentStep(run) : null
@@ -259,6 +266,7 @@ export const projectRow = (
     step: step?.step ?? (active ? null : (failedAt ?? null)),
     stepSince,
     findings: run.findings,
+    findingsNote: run.findingsNote,
     isWaiting: isWaiting(run),
     pr: run.pr ?? meta.pr,
     error: run.error,
