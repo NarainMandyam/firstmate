@@ -5,7 +5,11 @@ import type { DiskSentinelStatus } from "../types";
 
 const POLL_MS = 60_000;
 const DEFAULT_THRESHOLD_GB = 15;
+// The status line stays empty until free space is this close above the threshold.
+const NEAR_MARGIN_GB = 10;
 const DISK_PATH = "/System/Volumes/Data";
+const WARN = "⚠";
+const KB_PER_GB = 1024 * 1024;
 
 const lastStatus = atom(
   { plugin: "disk-sentinel", key: "lastStatus" } as const,
@@ -46,7 +50,26 @@ export function parseMetaWorktree(metaText: string): string | undefined {
 }
 
 export function formatGb(kb: number): string {
-  return `${(kb / (1024 * 1024)).toFixed(1)}G`;
+  return `${(kb / KB_PER_GB).toFixed(1)}G`;
+}
+
+/**
+ * The status-line entry for `freeKb` of free space against `thresholdGb`:
+ * nothing while free space is comfortably above the threshold (more than
+ * NEAR_MARGIN_GB over it), `disk <N>G free` once it is within that margin,
+ * and the same flagged `⚠` once it is below.
+ */
+export function statusText(freeKb: number, thresholdGb: number): string | undefined {
+  if (freeKb >= (thresholdGb + NEAR_MARGIN_GB) * KB_PER_GB) return undefined;
+  const reading = `disk ${formatGb(freeKb)} free`;
+  return freeKb < thresholdGb * KB_PER_GB ? `${WARN} ${reading}` : reading;
+}
+
+/** `path` with the home directory folded to `~`, so a listing stays short. */
+export function tildify(path: string, home: string | undefined): string {
+  return home && (path === home || path.startsWith(`${home}/`))
+    ? `~${path.slice(home.length)}`
+    : path;
 }
 
 /** Marks each target dir live when it sits under a recorded live worktree. */
@@ -128,21 +151,15 @@ async function pollDisk($: EngineInterface, thresholdGb: number): Promise<void> 
     return;
   }
 
-  $.ui.status(`disk ${formatGb(parsed.availKb)} free`);
+  $.ui.status(statusText(parsed.availKb, thresholdGb));
 
-  const thresholdKb = thresholdGb * 1024 * 1024;
-  const isBelowThreshold = parsed.availKb < thresholdKb;
+  const isBelowThreshold = parsed.availKb < thresholdGb * KB_PER_GB;
   const previous = await read($, lastStatus);
 
   if (isBelowThreshold && !(previous?.isBelowThreshold ?? false)) {
-    $.ui.toast(
-      `Disk free space is below ${thresholdGb}G (${formatGb(parsed.availKb)} free). Run /targets to find build caches to clear.`,
-    );
-    await $.ui
-      .notify(`Free disk space is ${formatGb(parsed.availKb)}, below the ${thresholdGb}G alarm.`, {
-        title: "disk-sentinel",
-      })
-      .catch(() => undefined);
+    const line = `${formatGb(parsed.availKb)} free on disk, under the ${thresholdGb}G line.`;
+    $.ui.toast(`${line} /targets lists build caches you could clear.`, { timeoutMs: 10_000 });
+    await $.ui.notify(line, { title: "disk-sentinel" }).catch(() => undefined);
   }
 
   const status: DiskSentinelStatus = {
@@ -182,15 +199,29 @@ async function listTargets($: EngineInterface, root: string): Promise<string> {
   }
 
   const liveWorktrees = await liveWorktreesOf($, root);
-  const report = crossCheckTargets(sized, liveWorktrees).sort((a, b) => b.sizeKb - a.sizeKb);
-  const totalKb = report.reduce((sum, r) => sum + r.sizeKb, 0);
+  const report = crossCheckTargets(sized, liveWorktrees);
+  return formatTargets(report, home);
+}
 
-  const lines = [`${report.length} target dirs, ${formatGb(totalKb)} total`];
-  for (const r of report) {
-    const tag = r.isLive ? `live (${r.ownerTaskId})` : "idle";
-    lines.push(`  ${formatGb(r.sizeKb).padStart(7)}  ${tag.padEnd(16)}  ${r.path}`);
-  }
-  lines.push("Nothing here is deleted by this mod; clear an idle one yourself when ready.");
+/**
+ * The /targets listing: idle dirs first (the ones that can go), largest
+ * first within each group, each row its size, `idle` or the live task, and
+ * its path with the home directory folded to `~`.
+ */
+export function formatTargets(report: readonly TargetReport[], home: string | undefined): string {
+  const rows = [...report].sort((a, b) =>
+    a.isLive === b.isLive ? b.sizeKb - a.sizeKb : a.isLive ? 1 : -1,
+  );
+  const totalKb = rows.reduce((sum, r) => sum + r.sizeKb, 0);
+  const idleKb = rows.filter(r => !r.isLive).reduce((sum, r) => sum + r.sizeKb, 0);
+  const tags = rows.map(r => (r.isLive ? `live ${r.ownerTaskId}` : "idle"));
+  const tagWidth = Math.max(...tags.map(t => t.length));
+
+  const lines = [`${rows.length} target dirs · ${formatGb(totalKb)} · ${formatGb(idleKb)} idle`];
+  rows.forEach((r, i) => {
+    lines.push(`  ${formatGb(r.sizeKb).padStart(7)}  ${tags[i]!.padEnd(tagWidth)}  ${tildify(r.path, home)}`);
+  });
+  lines.push("Nothing is deleted here; clear an idle one yourself when ready.");
 
   return lines.join("\n");
 }

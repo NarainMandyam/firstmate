@@ -1,16 +1,17 @@
 # wake-meter
 
 A Claude Code mod for firstmate's own primary session.
-It pins one status line under the prompt that shows what firstmate's monitoring notifications cost:
+It pins one status line under the prompt that leads with how much of each usage allowance is left, then what firstmate's monitoring notifications cost:
 
 ```
-ctx 262k · wakes 23 (19 idle) · last 1.1M · 5h 41% used
+5h ▰▰▰▱▱ 59% left · wk ▰▰▰▰▱ 81% left · ctx 262k · wakes 23
 ```
 
+- `5h` and `wk` are the five-hour and weekly allowance windows, each a bar of what is left; a window at or under 20% left is flagged `⚠`, and a window the API has not reported yet is left out.
 - `ctx` is how much context firstmate is carrying now; every notification re-reads all of it.
-- `wakes` counts today's notification turns, and `idle` is how many of them only drained the queue and did nothing else.
-- `last` is the token cost of the most recent notification turn.
-- `5h` is how much of the five-hour allowance is used.
+- `wakes` counts today's notification turns.
+
+`/wakes` prints the rest: today's count with how many were idle (drained the queue and did nothing else), the token cost of the most recent notification turn, the context size, and when each allowance window resets.
 
 When an idle notification turn ends with context past the restart threshold (250k tokens by default), a toast suggests a good moment to `/stow` and restart.
 It repeats only after another 50k of growth, and it is never a desktop notification.

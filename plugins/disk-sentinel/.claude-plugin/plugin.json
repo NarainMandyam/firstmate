@@ -1,14 +1,16 @@
 {
   "name": "disk-sentinel",
-  "version": "0.1.0",
-  "description": "Status-line free-space alarm plus a /targets listing of build-cache dirs and whether a live task still owns them.",
-  "author": { "name": "Firstmate" },
+  "version": "0.2.0",
+  "description": "Quiet free-space sentinel that surfaces in the status line only near or below its threshold, plus a /targets listing of build-cache dirs and whether a live task still owns them.",
+  "author": {
+    "name": "Firstmate"
+  },
   "types": "./types/index.d.ts",
   "userConfig": {
     "freeThresholdGb": {
       "type": "number",
       "title": "Free space alarm threshold (GB)",
-      "description": "Toast and notify once when free disk space drops below this many GB.",
+      "description": "Toast and notify once when free disk space drops below this many GB; the status line appears within 10 GB of it.",
       "default": 15
     }
   }

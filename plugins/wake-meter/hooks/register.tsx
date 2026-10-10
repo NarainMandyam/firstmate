@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, SessionRateLimit } from 'claude-code'
 
 import type { WakeTurn } from '../types'
 
@@ -10,6 +10,16 @@ const nudgeStep = atom({ plugin: 'wake-meter', key: 'nudgeStep' } as const, -1)
 const NUDGE_STEP_TOKENS = 50_000
 const WAKE_BANNER = 'firstmate watcher wake'
 const DRAIN = /(^|[\s/])fm-wake-drain\.sh\b/
+
+// The two allowance windows the API reports, in the order the line shows them.
+const WINDOWS = [
+  { kind: 'five_hour', label: '5h' },
+  { kind: 'seven_day', label: 'wk' },
+] as const
+const BAR_CELLS = 5
+const LOW_PERCENT_LEFT = 20
+const WARN = '⚠'
+const SEP = ' · '
 
 type Tally = { day: string; wakes: number; idle: number; lastCost: number | null }
 
@@ -35,6 +45,34 @@ const dayOf = (ms: number): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// "2h 10m" or "3d 4h" until `iso`, or undefined once it has passed or cannot be read.
+const until = (iso: string | undefined, nowMs: number): string | undefined => {
+  if (iso === undefined) return undefined
+  const minutes = Math.round((Date.parse(iso) - nowMs) / 60_000)
+  if (!Number.isFinite(minutes) || minutes <= 0) return undefined
+  const [d, h, m] = [Math.floor(minutes / 1440), Math.floor((minutes % 1440) / 60), minutes % 60]
+  return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+
+// How much of a window is left, 0 to 100, from the percent used the API reports.
+const percentLeft = (limit: SessionRateLimit): number =>
+  Math.max(0, Math.min(100, Math.round(100 - limit.percentUsed)))
+
+// `▰▰▰▱▱`: BAR_CELLS cells, filled from the left in proportion to what is left.
+const bar = (left: number): string => {
+  const filled = Math.round((left / 100) * BAR_CELLS)
+  return '▰'.repeat(filled) + '▱'.repeat(BAR_CELLS - filled)
+}
+
+// One `5h ▰▰▰▱▱ 59% left` entry per reported window; a low one is flagged.
+const windowEntries = (limits: readonly SessionRateLimit[]): string[] =>
+  WINDOWS.flatMap(({ kind, label }) => {
+    const limit = limits.find(l => l.kind === kind)
+    if (limit === undefined) return []
+    const left = percentLeft(limit)
+    return [`${left <= LOW_PERCENT_LEFT ? `${WARN} ` : ''}${label} ${bar(left)} ${left}% left`]
+  })
+
 async function readTally($: EngineInterface): Promise<Tally> {
   const day = dayOf(await $.clock.now())
   const saved = (await $.store.get('tally')) as Tally | undefined
@@ -50,19 +88,36 @@ async function isActive($: EngineInterface): Promise<boolean> {
   return script?.kind === 'file' && state?.kind === 'dir'
 }
 
-// Pins the meter line; answers the context size so the caller can judge a restart nudge.
+// Pins the meter line: the allowance bars first, then context and today's count; answers the context size.
 async function refreshStatus($: EngineInterface): Promise<number | undefined> {
   const usage = await $.session.usage()
   const tally = await readTally($)
-  const fiveHour = usage.rateLimits.find(r => r.kind === 'five_hour')
   const parts = [
+    ...windowEntries(usage.rateLimits),
     usage.context.tokens === undefined ? undefined : `ctx ${compact(usage.context.tokens)}`,
-    `wakes ${tally.wakes} (${tally.idle} idle)`,
-    tally.lastCost === null ? undefined : `last ${compact(tally.lastCost)}`,
-    fiveHour === undefined ? undefined : `5h ${Math.round(fiveHour.percentUsed)}% used`,
+    `wakes ${tally.wakes}`,
   ]
-  $.ui.status(parts.filter(p => p !== undefined).join(' · '))
+  $.ui.status(parts.filter(p => p !== undefined).join(SEP))
   return usage.context.tokens
+}
+
+// The /wakes answer: today's notification tally and when each allowance window resets.
+async function wakesReport($: EngineInterface): Promise<string> {
+  const usage = await $.session.usage()
+  const tally = await readTally($)
+  const now = await $.clock.now()
+  const today = [
+    `wakes ${tally.wakes} (${tally.idle} idle) today`,
+    tally.lastCost === null ? undefined : `last cost ${compact(tally.lastCost)}`,
+    usage.context.tokens === undefined ? undefined : `ctx ${compact(usage.context.tokens)}`,
+  ].filter(p => p !== undefined).join(SEP)
+  const windows = WINDOWS.flatMap(({ kind, label }) => {
+    const limit = usage.rateLimits.find(l => l.kind === kind)
+    if (limit === undefined) return []
+    const reset = until(limit.resetsAt, now)
+    return [`${label} ${percentLeft(limit)}% left${reset === undefined ? '' : `, resets in ${reset}`}`]
+  })
+  return [today, windows.length === 0 ? 'no allowance reading yet' : windows.join(SEP)].join('\n')
 }
 
 export const register: Register = (on, options) => {
@@ -70,9 +125,16 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     const started = await next(e)
-    if (await isActive($)) await refreshStatus($)
+    if (await isActive($)) {
+      await $.command.register({ name: 'wakes', description: "Today's firstmate notification tally and when the allowance windows reset" })
+      await refreshStatus($)
+    }
     return started
   })
+
+  on('command.run', { command: 'wakes' }, async $ => ({
+    text: (await isActive($)) ? await wakesReport($) : 'wake-meter is inert outside firstmate\'s own session.',
+  }))
 
   on('prompt.submit', async ($, e, next) => {
     const isOwnTurn = e.origin.kind === 'task-notification' && e.turnId === undefined
@@ -129,7 +191,7 @@ export const register: Register = (on, options) => {
       if (step > (await read($, nudgeStep))) {
         await update($, nudgeStep, () => step)
         $.ui.toast(
-          `Firstmate is carrying ${compact(tokens)} tokens of context, and every notification re-reads all of it. Good point to /stow and restart.`,
+          `Context is ${compact(tokens)} and every notification re-reads it. Good moment to /stow and restart.`,
           { timeoutMs: 10_000 },
         )
       }
