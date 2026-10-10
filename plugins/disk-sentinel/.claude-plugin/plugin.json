@@ -1,0 +1,14 @@
+{
+  "name": "disk-sentinel",
+  "version": "0.1.0",
+  "description": "Status-line free-space alarm plus a /targets listing of build-cache dirs and whether a live task still owns them.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "freeThresholdGb": {
+      "type": "number",
+      "label": "Free space alarm threshold (GB)",
+      "description": "Toast and notify once when free disk space drops below this many GB.",
+      "default": 15
+    }
+  }
+}
