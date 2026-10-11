@@ -610,7 +610,9 @@ if [ "$FLOOR_VERDICT" = 0 ]; then
     || fail "the project-grouped default used an unexpected workspace label: $DEFAULT_ON_LABEL"
   DEFAULT_ON_RECORD=$(find "$HOME_DIR/state" -maxdepth 1 \
     -name ".herdr-project-workspace-$(basename "$PROJECT_DIR")-*" | head -1)
-  [ -n "$DEFAULT_ON_RECORD" ] && grep -qx "workspace_id=$DEFAULT_ON_WSID" "$DEFAULT_ON_RECORD" \
+  [ -n "$DEFAULT_ON_RECORD" ] \
+    || fail "the project-grouped default published no workspace record"
+  grep -qx "workspace_id=$DEFAULT_ON_WSID" "$DEFAULT_ON_RECORD" \
     || fail "the project-grouped default did not record the exact workspace it created"
   pass "real Herdr lab: a home that configured nothing groups its task by project on herdr $FLOOR_VERSION"
 else
