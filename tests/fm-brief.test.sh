@@ -644,40 +644,32 @@ test_ship_project_memory_wording() {
   pass "fm-brief.sh: ship project-memory wording bounds edits to corrections of wrong information"
 }
 
-# Regression: hours of uncommitted work lost when a worker went idle, and
-# workers parking on backgrounded build/test monitors for over an hour,
-# traced to the scaffold never stating either rule. Both must land in both
+# Regression: workers parking on backgrounded build/test monitors for over
+# an hour, traced to the scaffold never stating the rule. It must land in both
 # heredocs (scout and ship are separate blocks in fm-brief.sh) or half the
-# fleet silently misses the rule.
-test_commit_early_and_no_background_monitors_rules() {
-  local home id brief
-  home="$TMP_ROOT/commit-early-no-bg-home"
+# fleet silently misses the rule, and it must defer to the existing paused
+# declaration rather than contradict it.
+test_no_background_idle_wait_rule() {
+  local home id brief kind
+  home="$TMP_ROOT/no-bg-idle-wait-home"
   mkdir -p "$home/data"
-
-  id="brief-commit-early-ship"
-  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
-  brief="$home/data/$id/brief.md"
-  assert_present "$brief" "ship brief was not scaffolded"
-  assert_grep "never leave a completed unit of work uncommitted" "$brief" \
-    "ship brief missing the commit-early rule"
-  assert_grep "an uncommitted change is the only copy, and an interrupted worker loses it" "$brief" \
-    "ship brief missing the commit-early rationale"
-  assert_grep "never background a long command and sit waiting for a completion notification" "$brief" \
-    "ship brief missing the no-backgrounded-monitors rule"
-  # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
-  assert_grep 'no-op waits like `true`, `jobs`, or `echo "still waiting"`' "$brief" \
-    "ship brief missing the no-op-wait examples"
-
-  id="brief-commit-early-scout"
-  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
-  brief="$home/data/$id/brief.md"
-  assert_present "$brief" "scout brief was not scaffolded"
-  assert_grep "never leave a completed unit of work uncommitted" "$brief" \
-    "scout brief missing the commit-early rule"
-  assert_grep "never background a long command and sit waiting for a completion notification" "$brief" \
-    "scout brief missing the no-backgrounded-monitors rule"
-
-  pass "fm-brief.sh: commit-early and no-backgrounded-monitors rules render in both ship and scout briefs"
+  for kind in ship scout; do
+    id="brief-no-bg-idle-wait-$kind"
+    if [ "$kind" = ship ]; then
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+    else
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
+    fi
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$kind brief was not scaffolded"
+    assert_grep "never background one just to idle-wait on a completion notification" "$brief" \
+      "$kind brief missing the no-background-idle-wait rule"
+    assert_grep "Where a tracked background job is genuinely needed, the paused declaration in rule 4 applies." "$brief" \
+      "$kind brief missing the defer-to-paused-declaration clause"
+    assert_grep "Before ending your turn with your own background shell or monitor still running" "$brief" \
+      "$kind brief lost the existing paused-declaration protocol"
+  done
+  pass "fm-brief.sh: no-background-idle-wait rule renders in both ship and scout briefs and defers to the paused declaration"
 }
 
 # Regression: a worker clobbered its own review fixes with a `git checkout`
@@ -705,9 +697,7 @@ test_temp_edit_process_kill_and_headless_rules() {
     # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
     assert_grep 'Never `pkill` or `killall` by name or pattern' "$brief" \
       "$kind brief missing the no-pkill-by-pattern rule"
-    assert_grep "give each dev server its own port" "$brief" \
-      "$kind brief missing the own-port rule"
-    assert_grep "never drive the captain's own screen: only headless browsers" "$brief" \
+    assert_grep "never drive the captain's own screen: test with headless browsers only, and never use osascript or System Events keystrokes, open app windows, attach chrome-devtools-axi to the captain's own Chrome, or launch a headed browser." "$brief" \
       "$kind brief missing the no-driving-the-captain's-screen rule"
   done
   pass "fm-brief.sh: temporary-edit, no-pkill, and headless-only rules render in both ship and scout briefs"
@@ -1682,7 +1672,7 @@ test_no_mistakes_dod_green_detection
 test_pr_based_dod_requires_non_draft
 test_ask_user_escalation_format
 test_ship_project_memory_wording
-test_commit_early_and_no_background_monitors_rules
+test_no_background_idle_wait_rule
 test_temp_edit_process_kill_and_headless_rules
 test_herdr_lab_contract_is_explicit_and_complete
 test_herdr_lab_contract_quotes_foreign_firstmate_path
