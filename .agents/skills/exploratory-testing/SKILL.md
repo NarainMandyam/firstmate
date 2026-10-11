@@ -1,6 +1,9 @@
 ---
 name: exploratory-testing
 description: >-
+  Load before briefing or running a playtest, QA, or exploratory bug-hunt of a
+  running app or UI, and read FIRSTMATE-NOTES.md first for the headless-only rule
+  and the agent harness.
   Design and execute structured exploratory testing sessions. Covers Session-Based
   Test Management (SBTM), charter writing, heuristic-based exploration (HICCUPS,
   FEW HICCUPS), bug discovery patterns, note-taking templates, and conversion of
