@@ -175,7 +175,11 @@ project_record() {  # <project-name>
 }
 
 teardown_task() {  # <id>
-  FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$HOME_DIR/state" \
+  # FM_HOME must name this suite's scratch home like spawn_task does: teardown
+  # derives the shared Treehouse project lock from the root home it resolves
+  # from FM_HOME, so inheriting an ambient one would both fail to resolve here
+  # and anchor the lock outside the home under test.
+  FM_HOME="$HOME_DIR" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$HOME_DIR/state" \
     FM_DATA_OVERRIDE="$HOME_DIR/data" FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
     "$ROOT/bin/fm-teardown.sh" "$1" >"$TMP_ROOT/$1.teardown.out" 2>&1
 }
