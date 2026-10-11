@@ -1528,8 +1528,8 @@ HERDR_LAB_HELPER=bin/fm-herdr-lab.sh \
 
 Observed guarantees, all six cases passing:
 
-- Two tasks of one project shared one workspace labeled `└ writing-workbench`, each in its own `fm-<id>` tab, with the focused workspace unchanged.
-- A second project received its own workspace labeled `└ saze`.
+- Two tasks of one project shared one workspace labeled `└ alpha`, each in its own `fm-<id>` tab, with the focused workspace unchanged.
+- A second project received its own workspace labeled `└ beta`.
 - Tearing down one of the two tasks closed exactly its own tab and left the project workspace and its sibling tab in place.
 - Tearing down the project's last task removed the project workspace while the focused workspace stayed exactly where it was.
 - The next task of that project created a fresh workspace and rebound the project record, rather than reusing the id of a workspace that was gone.

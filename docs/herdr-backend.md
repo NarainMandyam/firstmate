@@ -258,7 +258,7 @@ An unconverged opt-out keeps the default shape in that home until convergence.
 ## Project workspaces
 
 A project-grouped home puts every task of one project in one workspace of its own, labeled with that project's name, and creates it on first need.
-A fleet then reads as a handful of project spaces - `writing-workbench`, `saze`, `firstmate` - each holding its own `fm-<id>` task tabs, instead of one workspace per task.
+A fleet then reads as a handful of project spaces - `alpha`, `beta`, `firstmate` - each holding its own `fm-<id>` task tabs, instead of one workspace per task.
 
 ### Labels and names
 

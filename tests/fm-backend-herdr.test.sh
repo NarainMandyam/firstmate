@@ -5573,7 +5573,7 @@ test_project_container_groups_two_tasks_of_one_project() {
   local dir log state fb proj raw1 raw2 ws1 ws2 seeded1 seeded2 created label tabs
   dir="$TMP_ROOT/project-group-share"; mkdir -p "$dir"; log="$dir/log"; state="$dir/state.json"; : > "$log"
   fb=$(make_herdr_statefake "$dir")
-  proj="$dir/writing-workbench"; mkdir -p "$proj"
+  proj="$dir/alpha"; mkdir -p "$proj"
   raw1=$(project_ensure "$fb" "$state" "$log" "$dir" "$proj") \
     || fail "the first task's project container ensure failed"
   ws1=${raw1%%$'\t'*}; seeded1=${raw1#*$'\t'}
@@ -5590,7 +5590,7 @@ test_project_container_groups_two_tasks_of_one_project() {
   [ "$created" = 1 ] \
     || fail "the project workspace must be created once and reused, created $created times"
   label=$(jq -r --arg id "${ws1#*:}" '.workspaces[]|select(.workspace_id==$id)|.label' "$state")
-  [ "$label" = "└ writing-workbench" ] \
+  [ "$label" = "└ alpha" ] \
     || fail "a primary home's project workspace must be labeled by the project name, got '$label'"
   project_create_task "$fb" "$state" "$log" "$ws1" fm-wwa "$proj" "$seeded1" >/dev/null \
     || fail "the first task tab could not be created in its project workspace"
@@ -5606,7 +5606,7 @@ test_project_container_gives_each_project_its_own_workspace() {
   local dir log state fb proj_a proj_b raw_a raw_b labels total
   dir="$TMP_ROOT/project-group-distinct"; mkdir -p "$dir"; log="$dir/log"; state="$dir/state.json"; : > "$log"
   fb=$(make_herdr_statefake "$dir")
-  proj_a="$dir/saze"; mkdir -p "$proj_a"
+  proj_a="$dir/beta"; mkdir -p "$proj_a"
   proj_b="$dir/firstmate"; mkdir -p "$proj_b"
   raw_a=$(project_ensure "$fb" "$state" "$log" "$dir" "$proj_a") || fail "project A ensure failed"
   raw_b=$(project_ensure "$fb" "$state" "$log" "$dir" "$proj_b") || fail "project B ensure failed"
@@ -5615,7 +5615,7 @@ test_project_container_gives_each_project_its_own_workspace() {
   total=$(jq -r '.workspaces|length' "$state")
   [ "$total" = 2 ] || fail "expected exactly one workspace per project, got $total"
   labels=$(jq -r '[.workspaces[].label]|sort|join("|")' "$state")
-  [ "$labels" = "└ firstmate|└ saze" ] \
+  [ "$labels" = "└ beta|└ firstmate" ] \
     || fail "each project workspace must carry its own project-name label, got '$labels'"
   # A project named exactly like this home's own flat container must still be
   # structurally distinguishable from it, or the flat label lookup breaks.
@@ -5628,11 +5628,11 @@ test_project_container_never_adopts_an_unrecorded_same_labeled_workspace() {
   local dir log state fb proj raw wsid foreign_tabs
   dir="$TMP_ROOT/project-group-foreign"; mkdir -p "$dir"; log="$dir/log"; state="$dir/state.json"; : > "$log"
   fb=$(make_herdr_statefake "$dir")
-  proj="$dir/saze"; mkdir -p "$proj"
+  proj="$dir/beta"; mkdir -p "$proj"
   # A captain-owned workspace that happens to carry the same label, holding a
   # live tab. Herdr enforces no label uniqueness, so this must not attract a
   # worker: nothing in this home RECORDED it.
-  jq '.workspaces += [{workspace_id:"wforeign", label:"└ saze"}]
+  jq '.workspaces += [{workspace_id:"wforeign", label:"└ beta"}]
       | .tabs += [{tab_id:"wforeign:t1", label:"captains-own", workspace_id:"wforeign", pane_id:"wforeign:p1"}]' \
     "$state" > "$state.tmp" && mv "$state.tmp" "$state"
   raw=$(project_ensure "$fb" "$state" "$log" "$dir" "$proj") || fail "project container ensure failed"
@@ -5649,10 +5649,10 @@ test_project_container_rebinds_when_its_recorded_workspace_is_gone_or_relabeled(
   local dir log state fb proj raw first second third record
   dir="$TMP_ROOT/project-group-rebind"; mkdir -p "$dir"; log="$dir/log"; state="$dir/state.json"; : > "$log"
   fb=$(make_herdr_statefake "$dir")
-  proj="$dir/saze"; mkdir -p "$proj"
+  proj="$dir/beta"; mkdir -p "$proj"
   raw=$(project_ensure "$fb" "$state" "$log" "$dir" "$proj") || fail "first ensure failed"
   first=${raw%%$'\t'*}
-  record=$(find "$dir" -maxdepth 1 -name '.herdr-project-workspace-saze-*' | head -1)
+  record=$(find "$dir" -maxdepth 1 -name '.herdr-project-workspace-beta-*' | head -1)
   [ -n "$record" ] || fail "the project workspace record was not published"
   # Herdr removes a project workspace when its last task tab closes, which is
   # what the recovery path has to survive: the record is stale, so the next
@@ -5688,11 +5688,11 @@ test_project_workspace_label_separates_homes_and_sanitizes_the_name() {
       fm_backend_herdr_project_workspace_label "$(fm_backend_herdr_project_name "$1")"
     ' "$ROOT" "$2"
   }
-  label=$(project_label "$dir/primary" /srv/clones/writing-workbench)
-  [ "$label" = "└ writing-workbench" ] \
+  label=$(project_label "$dir/primary" /srv/clones/alpha)
+  [ "$label" = "└ alpha" ] \
     || fail "a primary home must label a project space by the project name, got '$label'"
-  label=$(project_label "$dir/sm" /srv/clones/writing-workbench)
-  [ "$label" = "└ 2ndmate-sm7/writing-workbench" ] \
+  label=$(project_label "$dir/sm" /srv/clones/alpha)
+  [ "$label" = "└ 2ndmate-sm7/alpha" ] \
     || fail "a secondmate home's project space must stay distinguishable from the primary's, got '$label'"
   # A name that could otherwise impersonate a presentation child's
   # "└ <task> · p:<token>" grammar, or break a record filename.

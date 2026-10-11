@@ -113,10 +113,10 @@ make_scratch_project() {  # <dir>
 }
 
 # Project names the labels are derived from.
-PROJ_A="$TMP_ROOT/writing-workbench"; make_scratch_project "$PROJ_A"
-PROJ_B="$TMP_ROOT/saze"; make_scratch_project "$PROJ_B"
-LABEL_A="└ writing-workbench"
-LABEL_B="└ saze"
+PROJ_A="$TMP_ROOT/alpha"; make_scratch_project "$PROJ_A"
+PROJ_B="$TMP_ROOT/beta"; make_scratch_project "$PROJ_B"
+LABEL_A="└ alpha"
+LABEL_B="└ beta"
 
 # A focus anchor: the FIRST workspace in a brand-new Herdr session is focused
 # whatever --no-focus says, so without one the project workspace under test
@@ -246,7 +246,7 @@ pass "real herdr E2E: closing a project's last task tab removes its workspace wi
 
 # --- 5. the next task of that project rebinds to a fresh workspace ----------
 
-RECORD_A=$(project_record writing-workbench)
+RECORD_A=$(project_record alpha)
 [ -n "$RECORD_A" ] || fail "project A published no workspace record"
 grep -qx "workspace_id=$WS_A" "$RECORD_A" \
   || fail "project A's record does not name the workspace it created"
