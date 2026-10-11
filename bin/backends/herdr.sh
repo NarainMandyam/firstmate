@@ -361,26 +361,37 @@ fm_backend_herdr_presentation_default_supported() {  # <state-dir> [<session>]
 # An explicit "project", "on", or "off" is obeyed as written. A home that
 # configured nothing is grouped by project only at or above the version floor,
 # because the last task of a project still empties its workspace on cleanup;
-# below the floor it falls back to the flat layout with one warning. Sets
-# FM_BACKEND_HERDR_PRESENTATION_PREFERENCE so a caller can distinguish an
-# unconfigured default from a deliberate choice at the create boundary, where
-# the floor is rechecked against the live server.
+# below the floor it falls back to the flat layout with one warning.
+#
+# Besides echoing the shape this also sets two globals, so a caller that needs
+# the deliberate-choice distinction at its create boundary - where the floor is
+# rechecked against the live server, and where an explicit choice must NOT be
+# rechecked - must call this as a PLAIN STATEMENT and read them, never through
+# command substitution, which forks a subshell that discards them:
+#   FM_BACKEND_HERDR_CONTAINER_SHAPE          - the resolved shape (also echoed)
+#   FM_BACKEND_HERDR_PRESENTATION_PREFERENCE  - "default" for an unconfigured
+#                                               home, otherwise the exact value
 fm_backend_herdr_container_shape() {  # <config-dir> [<state-dir>] [<session>]
-  local config_dir=${1:-} state_dir=${2:-} session=${3:-} preference
+  local config_dir=${1:-} state_dir=${2:-} session=${3:-} preference shape
   preference=$(fm_backend_herdr_presentation_preference "$config_dir")
-  # bin/fm-spawn.sh reads this out-parameter after sourcing this adapter.
+  case "$preference" in
+    off) shape=flat ;;
+    on) shape=task ;;
+    project) shape=project ;;
+    *)
+      if fm_backend_herdr_presentation_default_supported "$state_dir" "$session"; then
+        shape=project
+      else
+        shape=flat
+      fi
+      ;;
+  esac
+  # bin/fm-spawn.sh reads these out-parameters after sourcing this adapter.
   # shellcheck disable=SC2034
   FM_BACKEND_HERDR_PRESENTATION_PREFERENCE=$preference
-  case "$preference" in
-    off) printf 'flat\n'; return 0 ;;
-    on) printf 'task\n'; return 0 ;;
-    project) printf 'project\n'; return 0 ;;
-  esac
-  if fm_backend_herdr_presentation_default_supported "$state_dir" "$session"; then
-    printf 'project\n'
-  else
-    printf 'flat\n'
-  fi
+  # shellcheck disable=SC2034
+  FM_BACKEND_HERDR_CONTAINER_SHAPE=$shape
+  printf '%s\n' "$shape"
 }
 
 # fm_backend_herdr_workspace_label: the per-firstmate-HOME herdr workspace

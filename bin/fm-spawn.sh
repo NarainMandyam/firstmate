@@ -4181,7 +4181,8 @@ if [ "$RELAUNCH" -eq 1 ]; then
     # onto another herdr server - an identity change, published as a
     # self-consistent but wrong record.
     HERDR_REBIND_SES=${RELAUNCH_TARGET%%:*}
-    HERDR_REBIND_SHAPE=$(fm_backend_herdr_container_shape "$CONFIG" "$STATE" "$HERDR_REBIND_SES")
+    fm_backend_herdr_container_shape "$CONFIG" "$STATE" "$HERDR_REBIND_SES" >/dev/null
+    HERDR_REBIND_SHAPE=$FM_BACKEND_HERDR_CONTAINER_SHAPE
     HERDR_REBIND_PLACED=0
     if [ "$HERDR_REBIND_SHAPE" = project ]; then
       if spawn_herdr_presentation_order_lock_acquire "$HERDR_REBIND_SES"; then
@@ -4289,7 +4290,11 @@ else
     # shape, exactly as before: a persistent mate is not a project's task.
     HERDR_SHAPE=flat
     if [ "$KIND" != secondmate ]; then
-      HERDR_SHAPE=$(fm_backend_herdr_container_shape "$CONFIG" "$STATE")
+      # A PLAIN statement, never $(...): the gate also publishes the
+      # unconfigured-versus-deliberate distinction the create boundary below
+      # reads, and a command substitution would discard it in its subshell.
+      fm_backend_herdr_container_shape "$CONFIG" "$STATE" >/dev/null
+      HERDR_SHAPE=$FM_BACKEND_HERDR_CONTAINER_SHAPE
     fi
     if [ "$HERDR_SHAPE" = project ]; then
       HERDR_SES=$(fm_backend_herdr_session)

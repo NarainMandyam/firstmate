@@ -1663,6 +1663,10 @@ test_presentation_explicit_opt_in_survives_the_floor() {
   verdict=$(container_shape_verdict "$config" "$fb" 2>"$stderr")
   [ "$verdict" = task ] || fail "an explicit on must resolve to the per-task projection below the floor, got '$verdict'"
   [ ! -s "$stderr" ] || fail "an explicit opt-in must not warn: $(cat "$stderr")"
+  printf 'project\n' > "$config/herdr-presentation-spaces"
+  verdict=$(container_shape_verdict "$config" "$fb" 2>"$stderr")
+  [ "$verdict" = project ] || fail "an explicit project must group by project below the floor, got '$verdict'"
+  [ ! -s "$stderr" ] || fail "an explicit project must not warn: $(cat "$stderr")"
   pass "herdr presentation: a deliberate opt-in is never silently downgraded below the floor"
 }
 
@@ -1867,6 +1871,36 @@ test_release_floor_verdict_survives_losing_either_signal() {
   got=$(release_floor_verdict 16 '')
   [ "$got" = below ] || fail "the divergent case must flip once the version signal is gone, got $got"
   pass "herdr presentation floor: either signal alone can carry an above verdict, and each divergence is real"
+}
+
+# bin/fm-spawn.sh rechecks the version floor against the live server before
+# creating anything, but ONLY for an unconfigured home: an explicit choice must
+# never be rechecked and downgraded there. It reads that distinction from the
+# gate's out-parameters, which only survive a PLAIN-statement call, so this
+# pins both of them rather than only the echoed shape.
+test_container_shape_publishes_the_create_boundary_out_parameters() {
+  local dir config fb got
+  dir="$TMP_ROOT/container-shape-outparams"; config="$dir/config"; mkdir -p "$config"
+  shape_and_preference() {  # <config-dir> <fakebin> -> "<shape> <preference>"
+    PATH="$2:$PATH" bash -c '
+      . "$0/bin/backends/herdr.sh"
+      fm_backend_herdr_container_shape "$1" "" >/dev/null
+      printf "%s %s\n" "$FM_BACKEND_HERDR_CONTAINER_SHAPE" "$FM_BACKEND_HERDR_PRESENTATION_PREFERENCE"
+    ' "$ROOT" "$1" 2>/dev/null
+  }
+  fb=$(make_release_fakebin "$dir" "$AT_FLOOR_PROTOCOL" "$AT_FLOOR_VERSION")
+  got=$(shape_and_preference "$config" "$fb")
+  [ "$got" = "project default" ] \
+    || fail "an unconfigured home must report the project shape AND an unconfigured preference, got '$got'"
+  printf 'project\n' > "$config/herdr-presentation-spaces"
+  got=$(shape_and_preference "$config" "$fb")
+  [ "$got" = "project project" ] \
+    || fail "an explicit project must be reported as a deliberate choice, not an unconfigured default, got '$got'"
+  printf 'on\n' > "$config/herdr-presentation-spaces"
+  got=$(shape_and_preference "$config" "$fb")
+  [ "$got" = "task on" ] \
+    || fail "an explicit per-task opt-in must be reported as a deliberate choice, got '$got'"
+  pass "herdr containers: the shape gate publishes both the shape and whether it was a deliberate choice, which is what keeps the create boundary from rechecking an explicit one"
 }
 
 test_presentation_preference_reports_four_distinct_states() {
@@ -6184,6 +6218,7 @@ test_presentation_floor_warning_marker_is_atomic_and_symlink_safe
 test_presentation_running_server_release_is_load_bearing
 test_release_floor_verdict_matches_the_measured_releases
 test_release_floor_verdict_survives_losing_either_signal
+test_container_shape_publishes_the_create_boundary_out_parameters
 test_presentation_preference_reports_four_distinct_states
 test_projection_journal_is_atomic_and_uses_128_bit_token
 test_projection_journal_v2_binds_and_advances_exact_endpoint
