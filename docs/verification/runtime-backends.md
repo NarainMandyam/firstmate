@@ -1517,6 +1517,26 @@ ok - real herdr E2E: teardown closes only the worker's own pane and leaves the l
 That suite's headline case runs `bin/fm-spawn.sh` inside a real Herdr pane, so the parent identity comes from Herdr's own injection rather than a composed environment.
 Cross-session and contradictory bindings are covered deterministically in `tests/fm-backend-herdr.test.sh`, which can script a second server's socket without provisioning one.
 
+### Project-grouped task containers
+
+The default container shape ran on 2026-10-11 against Herdr 0.8.2 on macOS aarch64:
+
+```sh
+HERDR_LAB_HELPER=bin/fm-herdr-lab.sh \
+  tests/fm-backend-herdr-project-groups-e2e.test.sh
+```
+
+Observed guarantees, all six cases passing:
+
+- Two tasks of one project shared one workspace labeled `└ writing-workbench`, each in its own `fm-<id>` tab, with the focused workspace unchanged.
+- A second project received its own workspace labeled `└ saze`.
+- Tearing down one of the two tasks closed exactly its own tab and left the project workspace and its sibling tab in place.
+- Tearing down the project's last task removed the project workspace while the focused workspace stayed exactly where it was.
+- The next task of that project created a fresh workspace and rebound the project record, rather than reusing the id of a workspace that was gone.
+- A reclaim of a destroyed endpoint minted its replacement tab in its project's still-live workspace beside its sibling, and no flat `firstmate` workspace was created.
+
+That command refreshes this record.
+
 ### Per-home and presentation topology
 
 Per-home behavior is owned by:
