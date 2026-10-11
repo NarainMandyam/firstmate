@@ -236,7 +236,7 @@ test_forge_selection_renders_correct_cli() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-default some-proj --mode direct-PR >/dev/null 2>&1 \
     || fail "a ship brief with no --forge should still scaffold"
   brief="$home/data/brief-forge-default/brief.md"
-  assert_grep "3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations." "$brief" \
+  assert_grep "3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen" "$brief" \
     "a brief with no --forge must render the exact pre-existing gh-axi Rule 3 line"
   # shellcheck disable=SC2016 # Backticks are literal generated brief text.
   assert_grep 'open a PR with `gh-axi`' "$brief" \
@@ -247,7 +247,7 @@ test_forge_selection_renders_correct_cli() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-forgejo some-proj --mode direct-PR --forge forgejo >/dev/null 2>&1 \
     || fail "--forge forgejo should scaffold a direct-PR ship brief"
   brief="$home/data/brief-forge-forgejo/brief.md"
-  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations." "$brief" \
+  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen" "$brief" \
     "--forge forgejo must render the tea Rule 3 line"
   # shellcheck disable=SC2016 # Backticks are literal generated brief text.
   assert_grep 'open a PR with `tea`' "$brief" \
@@ -268,7 +268,7 @@ test_forge_selection_renders_correct_cli() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-nm some-proj --mode no-mistakes --forge forgejo >/dev/null 2>&1 \
     || fail "--forge forgejo should scaffold a no-mistakes ship brief"
   brief="$home/data/brief-forge-nm/brief.md"
-  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations." "$brief" \
+  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen" "$brief" \
     "a no-mistakes --forge forgejo brief must render the tea Rule 3 line"
   grep -qx "Delivery contract: mode=no-mistakes forge=forgejo" "$brief" \
     || fail "a no-mistakes --forge forgejo brief must mark the delivery contract line"
@@ -642,6 +642,75 @@ test_ship_project_memory_wording() {
   assert_grep "A correction edits only the wrong text: do not run \`$ROOT/bin/fm-ensure-agents-md.sh\`" "$brief" \
     "project-memory contract no longer forbids the ensure helper on a correction"
   pass "fm-brief.sh: ship project-memory wording bounds edits to corrections of wrong information"
+}
+
+# Regression: hours of uncommitted work lost when a worker went idle, and
+# workers parking on backgrounded build/test monitors for over an hour,
+# traced to the scaffold never stating either rule. Both must land in both
+# heredocs (scout and ship are separate blocks in fm-brief.sh) or half the
+# fleet silently misses the rule.
+test_commit_early_and_no_background_monitors_rules() {
+  local home id brief
+  home="$TMP_ROOT/commit-early-no-bg-home"
+  mkdir -p "$home/data"
+
+  id="brief-commit-early-ship"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+  brief="$home/data/$id/brief.md"
+  assert_present "$brief" "ship brief was not scaffolded"
+  assert_grep "never leave a completed unit of work uncommitted" "$brief" \
+    "ship brief missing the commit-early rule"
+  assert_grep "an uncommitted change is the only copy, and an interrupted worker loses it" "$brief" \
+    "ship brief missing the commit-early rationale"
+  assert_grep "never background a long command and sit waiting for a completion notification" "$brief" \
+    "ship brief missing the no-backgrounded-monitors rule"
+  # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+  assert_grep 'no-op waits like `true`, `jobs`, or `echo "still waiting"`' "$brief" \
+    "ship brief missing the no-op-wait examples"
+
+  id="brief-commit-early-scout"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
+  brief="$home/data/$id/brief.md"
+  assert_present "$brief" "scout brief was not scaffolded"
+  assert_grep "never leave a completed unit of work uncommitted" "$brief" \
+    "scout brief missing the commit-early rule"
+  assert_grep "never background a long command and sit waiting for a completion notification" "$brief" \
+    "scout brief missing the no-backgrounded-monitors rule"
+
+  pass "fm-brief.sh: commit-early and no-backgrounded-monitors rules render in both ship and scout briefs"
+}
+
+# Regression: a worker clobbered its own review fixes with a `git checkout`
+# over uncommitted work, and a stray `pkill -f vite` killed every frontend
+# worker on the machine. Headless-only browser testing closes a third
+# incident: a worker driving the captain's own screen.
+test_temp_edit_process_kill_and_headless_rules() {
+  local home id brief kind
+  home="$TMP_ROOT/temp-edit-process-home"
+  mkdir -p "$home/data"
+  for kind in ship scout; do
+    id="brief-temp-edit-$kind"
+    if [ "$kind" = ship ]; then
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+    else
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
+    fi
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$kind brief was not scaffolded"
+    # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+    assert_grep 'Never `git checkout` or `git restore` a file that holds uncommitted work' "$brief" \
+      "$kind brief missing the no-checkout-over-uncommitted-work rule"
+    assert_grep "commit the file or copy it aside" "$brief" \
+      "$kind brief missing the copy-before-temporary-edit rule"
+    # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+    assert_grep 'Never `pkill` or `killall` by name or pattern' "$brief" \
+      "$kind brief missing the no-pkill-by-pattern rule"
+    assert_grep "give each dev server its own port" "$brief" \
+      "$kind brief missing the own-port rule"
+    assert_grep "never drive the captain's own screen: only headless browsers" "$brief" \
+      "$kind brief missing the no-driving-the-captain's-screen rule"
+  done
+  pass "fm-brief.sh: temporary-edit, no-pkill, and headless-only rules render in both ship and scout briefs"
 }
 
 test_herdr_lab_contract_is_explicit_and_complete() {
@@ -1613,6 +1682,8 @@ test_no_mistakes_dod_green_detection
 test_pr_based_dod_requires_non_draft
 test_ask_user_escalation_format
 test_ship_project_memory_wording
+test_commit_early_and_no_background_monitors_rules
+test_temp_edit_process_kill_and_headless_rules
 test_herdr_lab_contract_is_explicit_and_complete
 test_herdr_lab_contract_quotes_foreign_firstmate_path
 test_herdr_lab_omission_is_loud_for_ship_and_scout
