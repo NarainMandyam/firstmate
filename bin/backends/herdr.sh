@@ -11,16 +11,21 @@
 # normal operation; the unit tests source it directly, so the FM_HOME fallback
 # below keeps that path sane without fm-backend.sh's preamble.
 #
-# Default container shape (D4, decided empirically - see
-# herdr-verification-p2.md "Task container shape", refined by
-# docs/herdr-backend.md "Default task container shape"): ONE herdr workspace PER
-# FIRSTMATE HOME (the primary, and each secondmate, gets its own), ONE herdr TAB
-# per task inside its home's workspace. The default-on presentation projection
-# creates a disposable workspace for a clean fresh task instead unless the home
-# opts out. That
-# workspace is a non-authoritative visual projection containing only the normal
-# task pane. Its random token and mutable label never authorize lookup,
-# adoption, reuse, closure, deletion, task ownership, or endpoint selection.
+# Container shapes (D4, decided empirically - see herdr-verification-p2.md
+# "Task container shape", refined by docs/herdr-backend.md "Task container
+# shapes", which owns the setting and the version floor):
+#   flat    - ONE herdr workspace PER FIRSTMATE HOME (the primary, and each
+#             secondmate, gets its own), ONE herdr TAB per task inside it.
+#   project - ONE workspace per PROJECT, reused by every later task of that
+#             project, ONE tab per task inside it. The DEFAULT for a home that
+#             configured nothing, at or above the version floor. Placement comes
+#             from this home's own recorded exact workspace id, never from the
+#             mutable label (fm_backend_herdr_project_container_ensure).
+#   task    - a disposable workspace per clean fresh task. That workspace is a
+#             non-authoritative visual projection containing only the normal
+#             task pane. Its random token and mutable label never authorize
+#             lookup, adoption, reuse, closure, deletion, task ownership, or
+#             endpoint selection.
 # A version 2 journal can participate in replacing only its exact same-identity
 # endpoint after metadata, home, session, workspace, tab, pane, parent, shape,
 # focus, and agent-absence checks all agree under the session lock.
@@ -107,8 +112,10 @@ FM_BACKEND_HERDR_MIN_EVENTS_PROTOCOL=16
 # presentation path uses one narrowly whitelisted raw-socket request after
 # verifying the exact method and parameter schema.
 FM_BACKEND_HERDR_MIN_WORKSPACE_MOVE_PROTOCOL=16
-# The version floor for DEFAULT-ON presentation projection. Projection turns
-# every crewmate teardown into a workspace-emptying removal, and the focus-safe
+# The version floor for the UNCONFIGURED non-flat container default. Both
+# non-flat shapes end in a workspace-emptying removal - the per-task projection
+# on every crewmate teardown, project grouping when a project's last task tab
+# closes - and the focus-safe
 # removal plan can only avoid Herdr's focus-stealing explicit close while the
 # doomed pane holds a provably lone idle childless shell; a persistent child of
 # that shell (gitstatusd, a zsh-async worker, direnv) makes the plan fall back
