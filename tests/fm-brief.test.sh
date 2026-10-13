@@ -249,6 +249,8 @@ test_forge_selection_renders_correct_cli() {
   brief="$home/data/brief-forge-forgejo/brief.md"
   assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen" "$brief" \
     "--forge forgejo must render the tea Rule 3 line"
+  assert_grep "never drive the captain's own screen: test with headless browsers only, and never use osascript or System Events keystrokes, open app windows, attach chrome-devtools-axi to the captain's own Chrome, or launch a headed browser." "$brief" \
+    "--forge forgejo's Rule 3 must carry the full headless-only clause, not just the gh-axi variant"
   # shellcheck disable=SC2016 # Backticks are literal generated brief text.
   assert_grep 'open a PR with `tea`' "$brief" \
     "--forge forgejo's direct-PR DOD must tell the worker to open the PR with tea"
