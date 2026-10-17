@@ -39,7 +39,7 @@
 # preserves focus exactly when the dying workspace sits behind the focused
 # one or the focused one is last (upstream issue #1621, fixed by PR #1912);
 # both fixes first shipped in Herdr 0.8.0, which is the version floor for
-# default-on projection (FM_BACKEND_HERDR_MIN_PRESENTATION_VERSION). Projected cleanup
+# the unconfigured non-flat default (FM_BACKEND_HERDR_MIN_PRESENTATION_VERSION). Projected cleanup
 # therefore serializes under the session lock, repositions a doomed workspace
 # behind the focused one when needed, and ends its verified lone idle shell
 # so Herdr removes the emptied workspace through the focus-preserving
@@ -1203,8 +1203,8 @@ fm_backend_herdr_projection_close_pane_focus_preserving() {  # <session> <pane-i
 # lone, childless, and idle - a persistent gitstatusd, zsh-async worker, or
 # direnv fails that proof permanently - and on a release without both fixes the
 # fallback is the focus-stealing close itself, so the mitigation is conditional
-# rather than unconditional and a version gate IS required. Default-on
-# projection is therefore floored at FM_BACKEND_HERDR_MIN_PRESENTATION_VERSION,
+# rather than unconditional and a version gate IS required. The unconfigured
+# non-flat default is therefore floored at FM_BACKEND_HERDR_MIN_PRESENTATION_VERSION,
 # where every removal primitive preserves focus and the proof stops being
 # load-bearing. That floor has ONE owner, the spawn-time gate
 # fm_backend_herdr_container_shape, so every new projection is either on a
