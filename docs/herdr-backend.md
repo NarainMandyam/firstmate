@@ -259,6 +259,7 @@ An unconverged opt-out keeps the default shape in that home until convergence.
 
 A project-grouped home puts every task of one project in one workspace of its own, labeled with that project's name, and creates it on first need.
 A fleet then reads as a handful of project spaces - `alpha`, `beta`, `firstmate` - each holding its own `fm-<id>` task tabs, instead of one workspace per task.
+Opt-in [project groups](#project-groups) compose with this shape: a task tab still carries its own group and status tags, while the shared project workspace carries none, because a single task's tokens would misname the other tasks beside it.
 
 ### Labels and names
 
@@ -632,7 +633,7 @@ For each ship and scout task recorded in the home with Herdr endpoint metadata, 
 | `fm_group_order` | projected workspace | `<group order>.<group>`, the key that [placement](#placement-inside-the-group) compares. |
 
 Workspace tokens go only to the task's own projected workspace: an exact version 2 [presentation journal](#presentation-journal) binding the task's recorded session, workspace, and pane, whose live workspace holds that single pane.
-A flat-layout task tab shares its workspace with other tasks, so it gets pane tokens only.
+A task tab that shares its workspace with other tasks gets pane tokens only: the flat layout, and the [project workspace](#project-workspaces) a project-grouped home reuses for every task of one project.
 
 The display status comes from the task's status log through the shared classifier that `bin/fm-classify-lib.sh` owns, in this rank order:
 
