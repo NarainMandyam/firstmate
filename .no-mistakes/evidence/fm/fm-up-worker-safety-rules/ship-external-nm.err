@@ -1,0 +1,1 @@
+error: fm-brief.sh --forge: forge=external ships direct-PR only for now; the pipeline's push, pr, and ci steps would push to the shared origin
