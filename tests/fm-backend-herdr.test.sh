@@ -1604,7 +1604,7 @@ AT_FLOOR_VERSION=0.8.0
 BELOW_FLOOR_PROTOCOL=17
 BELOW_FLOOR_VERSION=0.7.5
 
-test_container_shape_defaults_to_project_groups_at_or_above_the_floor() {
+test_container_shape_defaults_to_project_workspaces_at_or_above_the_floor() {
   local dir config fb verdict stderr
   dir="$TMP_ROOT/presentation-default-on"; config="$dir/config"; mkdir -p "$config"
   stderr="$dir/default-on.err"
@@ -6207,7 +6207,7 @@ test_create_task_refuses_when_agent_state_ambiguous
 test_create_task_husk_replacement_creates_before_closing
 test_create_task_creates_and_parses_ids
 test_create_task_creates_with_no_focus_flag
-test_container_shape_defaults_to_project_groups_at_or_above_the_floor
+test_container_shape_defaults_to_project_workspaces_at_or_above_the_floor
 test_presentation_default_falls_back_below_the_floor
 test_presentation_unreadable_release_falls_back
 test_presentation_explicit_opt_in_survives_the_floor

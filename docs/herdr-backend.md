@@ -318,7 +318,7 @@ While both shapes have live workspaces in one session, per-task ordering can fin
 | Test | What it covers |
 | --- | --- |
 | `tests/fm-backend-herdr.test.sh` | Reuse across tasks of one project, one workspace per project, refusal to adopt an unrecorded same-labeled workspace, record rebinding after removal or a hand rename, label derivation per home, and name sanitization. |
-| `tests/fm-backend-herdr-project-groups-e2e.test.sh` | The same contract end to end against the real binary through the guarded lab path, including last-tab workspace removal with the focused workspace unmoved and a reclaimed endpoint rejoining its project. |
+| `tests/fm-backend-herdr-project-workspaces-e2e.test.sh` | The same contract end to end against the real binary through the guarded lab path, including last-tab workspace removal with the focused workspace unmoved and a reclaimed endpoint rejoining its project. |
 
 ## Presentation spaces
 
@@ -1056,7 +1056,7 @@ tests/fm-backend-herdr-respawn-idem-e2e.test.sh
 tests/fm-backend-herdr-workspace-per-home-e2e.test.sh
 tests/fm-backend-herdr-launcher-workspace-e2e.test.sh
 tests/fm-backend-herdr-presentation-e2e.test.sh
-tests/fm-backend-herdr-project-groups-e2e.test.sh
+tests/fm-backend-herdr-project-workspaces-e2e.test.sh
 tests/fm-backend-herdr-agent-exit-shell-e2e.test.sh
 tests/fm-herdr-pi-stale-registration-live-e2e.test.sh
 tests/fm-backend-herdr-eventwait-smoke.test.sh

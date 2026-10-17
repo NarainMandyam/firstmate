@@ -1523,7 +1523,7 @@ The default container shape ran on 2026-10-11 against Herdr 0.8.2 on macOS aarch
 
 ```sh
 HERDR_LAB_HELPER=bin/fm-herdr-lab.sh \
-  tests/fm-backend-herdr-project-groups-e2e.test.sh
+  tests/fm-backend-herdr-project-workspaces-e2e.test.sh
 ```
 
 Observed guarantees, all six cases passing:

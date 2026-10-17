@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/fm-backend-herdr-project-groups-e2e.test.sh - mandatory ISOLATED
+# tests/fm-backend-herdr-project-workspaces-e2e.test.sh - mandatory ISOLATED
 # end-to-end real-herdr test for project-grouped task containers
 # (docs/herdr-backend.md "Project workspaces").
 #
