@@ -1,0 +1,7 @@
+ok - real herdr E2E: two tasks of one project share one workspace labeled by the project, each in its own fm-<id> tab, with no focus change
+ok - real herdr E2E: a second project gets its own labeled workspace
+ok - real herdr E2E: tearing down one task closes only its own tab and keeps the project workspace alive for its sibling
+ok - real herdr E2E: closing a project's last task tab removes its workspace without moving the focused workspace
+ok - real herdr E2E: after its workspace is gone the next task of that project mints a fresh one and the record rebinds
+ok - real herdr E2E: a reclaim of a destroyed endpoint rejoins its project's recorded workspace instead of the flat per-home one
+exit=0
