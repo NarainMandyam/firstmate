@@ -43,7 +43,34 @@ test_created_agents_md_includes_self_governance() {
     "self-governance section lost rewrite-or-prune guidance"
   assert_grep "When updating this file, preserve this bar for all agents and keep entries concise." "$agents" \
     "self-governance section lost all-agents maintenance guidance"
+  assert_grep "Keep this root file under about 200 lines: put area-specific knowledge in that directory's own \`AGENTS.md\`." "$agents" \
+    "self-governance section lost the root-size and area-file guidance"
+  assert_grep "Organize by topic, never by the task that discovered it." "$agents" \
+    "self-governance section lost the topic-over-task guidance"
   pass "fm-ensure-agents-md.sh: created AGENTS.md includes self-governance section"
+}
+
+# The size ceiling is detect-only: it warns on stderr for an oversized root file
+# and changes neither the exit status, the file, nor a small file's quiet output.
+test_oversized_agents_md_warns_without_failing() {
+  local repo agents out err before
+  repo="$TMP_ROOT/oversized-project"
+  mkdir -p "$repo"
+  "$ROOT/bin/fm-ensure-agents-md.sh" "$repo" >/dev/null 2>&1 \
+    || fail "fm-ensure-agents-md.sh failed building the oversized fixture"
+  agents="$repo/AGENTS.md"
+  err=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1 >/dev/null) \
+    || fail "fm-ensure-agents-md.sh failed on a small AGENTS.md"
+  [ -z "$err" ] || fail "small AGENTS.md produced a warning: $err"
+  seq 1 300 | sed 's/^/- note /' >> "$agents"
+  before=$(cat "$agents")
+  out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>"$repo/.stderr") \
+    || fail "oversized AGENTS.md made the helper fail"
+  assert_contains "$out" "unchanged:" "oversized AGENTS.md changed the reported outcome"
+  assert_grep "warning: AGENTS.md" "$repo/.stderr" "oversized AGENTS.md did not warn"
+  assert_grep "directory's own AGENTS.md" "$repo/.stderr" "warning did not point at area AGENTS.md files"
+  [ "$(cat "$agents")" = "$before" ] || fail "the size warning modified AGENTS.md"
+  pass "fm-ensure-agents-md.sh: oversized AGENTS.md warns on stderr without failing or editing"
 }
 
 test_fresh_setup_writes_real_claude_pointer() {
@@ -294,6 +321,7 @@ test_existing_crlf_agents_md_without_section_preserves_crlf() {
   out=$("$ROOT/bin/fm-ensure-agents-md.sh" "$repo" 2>&1) \
     || fail "fm-ensure-agents-md.sh failed injecting into CRLF AGENTS.md"
   assert_contains "$out" "updated:" "CRLF AGENTS.md injection did not report an update"
+  # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
   printf '%s\r\n' \
     '# Existing agent memory' \
     '' \
@@ -304,6 +332,8 @@ test_existing_crlf_agents_md_without_section_preserves_crlf() {
     'Keep this file for knowledge useful to almost every future agent session in this project.' \
     'Do not repeat what the codebase already shows; point to the authoritative file or command instead.' \
     'Prefer rewriting or pruning existing entries over appending new ones.' \
+    'Keep this root file under about 200 lines: put area-specific knowledge in that directory'"'"'s own `AGENTS.md`.' \
+    'Organize by topic, never by the task that discovered it.' \
     'When updating this file, preserve this bar for all agents and keep entries concise.' > "$repo/.expected"
   cmp -s "$repo/.expected" "$agents" \
     || fail "CRLF AGENTS.md injection did not preserve CRLF line endings"
@@ -416,6 +446,7 @@ test_lowercase_agents_md_refuses_case_fragile_pointer() {
 }
 
 test_created_agents_md_includes_self_governance
+test_oversized_agents_md_warns_without_failing
 test_fresh_setup_writes_real_claude_pointer
 test_promoted_claude_md_includes_self_governance
 test_promoted_claude_md_without_trailing_newline_keeps_blank_separator

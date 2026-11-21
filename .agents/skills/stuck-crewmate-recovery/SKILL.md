@@ -79,6 +79,11 @@ Only positive socket refusal or absence is a daemon-down finding; escalate that 
 Escalate in order:
 
 1. Peek the pane, and check the task's steering inbox (`state/<id>.inbox/`) for unhandled `*.msg` records - a stale wake naming an unread firstmate instruction means the worker never acknowledged a durable steer, and the record itself shows exactly what was intended.
+   Read the pane's shape before choosing a remedy.
+   A bare shell prompt, with the steering doorbell rendered as a command error, means the harness process died, so relaunch (step 4).
+   An idle composer after a mid-response API error means the agent is alive and only its turn ended, so relaunch is the wrong reflex: check `git status` in its worktree, then send one resume line that orders a commit first.
+   Before calling a worker's action a violation, look in the pane for a line the captain typed there directly, which no status log records, and read that task's own brief for its ownership lines.
+   Sibling tasks carry different ownership, so a worker citing its own brief is probably right.
    A worker whose current state is a declared `paused:` wait has only said what it is waiting for, so verify the condition it names - its own background job's terminal record or process, for example - and when that condition has already cleared, steer the worker to read the result and resume instead of reporting the wait as healthy.
 2. If the crewmate is waiting on a question its brief already answers, follow the [T3 pending-request procedure](../../../docs/t3code-backend.md#push-events-and-polling-fallback) for a T3 runtime request.
    On pane backends, answer in one line via `FM_HOME=<this-firstmate-home> bin/fm-send.sh` from an active firstmate session unless `FM_HOME` is already set to the active firstmate home.

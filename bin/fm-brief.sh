@@ -145,6 +145,9 @@
 # additions of missing knowledge. A correction edits only the wrong text and
 # never runs fm-ensure-agents-md.sh, whose inserted sections and created
 # pointer file are themselves additions.
+# Scout scaffolds ask the report to open with Status/Date/Inputs/Supersedes lines
+# and end with a Durable learnings list naming each proposed owner, which is
+# firstmate's feed for promoting learnings into shared skills and scripts.
 # Ship tasks also carry a standing test-discipline section: test only the named
 # acceptance criteria and load-bearing invariants, skip smoke/redundant/trivial
 # tests, and stay especially sparing early in a package's life. Scout scaffolds
@@ -765,6 +768,7 @@ $WAIT_BLOCK$INBOX_SECTION
 # Definition of done
 Write your findings to \`$DATA/$ID/report.md\`.
 The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
+Open it with \`Status\` (\`current\` or \`superseded-by <id>\`), \`Date\`, \`Inputs\`, and \`Supersedes\` lines, and end it with a \`Durable learnings\` list of 0-3 bullets, each naming the skill or script that should own it.
 $LAVISH_LINE
 Before reporting done, read and follow \`$FM_ROOT/.agents/skills/captain-hold-lifecycle/SKILL.md\` and pass its shared completion gate for the report and any visual review.
 Only when the reviewed inventory is empty, run \`FM_HOME=$(shell_quote "$FM_HOME") bash $(shell_quote "$FM_ROOT/bin/fm-captain-hold.sh") complete $(shell_quote "$ID") --none\`.

@@ -733,6 +733,21 @@ test_worker_hygiene_and_headless_rules() {
   pass "fm-brief.sh: worker hygiene and headless-only rules render across ship, scout, and forge scaffolds"
 }
 
+# The scout report header convention feeds supersession tracking and the
+# learnings-promotion queue.
+test_scout_report_header() {
+  local home brief
+  home="$TMP_ROOT/report-header-home"
+  mkdir -p "$home/data"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-header-scout some-proj --scout >/dev/null 2>&1
+  brief="$home/data/brief-header-scout/brief.md"
+  assert_grep "superseded-by <id>" "$brief" "scout brief missing the report Status convention"
+  # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+  assert_grep 'end it with a `Durable learnings` list of 0-3 bullets' "$brief" \
+    "scout brief missing the Durable learnings list"
+  pass "fm-brief.sh: scout report header renders"
+}
+
 test_herdr_lab_contract_is_explicit_and_complete() {
   local home id brief
   home="$TMP_ROOT/herdr-lab-home"
@@ -1797,6 +1812,7 @@ test_ask_user_escalation_format
 test_ship_project_memory_wording
 test_ship_test_discipline_section
 test_worker_hygiene_and_headless_rules
+test_scout_report_header
 test_herdr_lab_contract_is_explicit_and_complete
 test_herdr_lab_contract_quotes_foreign_firstmate_path
 test_herdr_lab_omission_is_loud_for_ship_and_scout

@@ -62,6 +62,12 @@ A forge composes with `no-mistakes`, `direct-PR`, and `no-mistakes-prod-only` (`
 `bin/fm-project-mode.sh`'s header owns the binding and `bin/fm-dod-lib.sh` owns what it changes for a worker.
 The optional `pr=manual` token marks a `no-mistakes` project whose PR title and body a person writes, so the pipeline's `pr` step must not rewrite them; register it only on the captain's confirmation, with no `forge=` token (`docs/configuration.md` "PR text selection").
 
+## Project hub
+
+A project with more than a handful of reports gets a hand-kept `data/<PROJECT>.md` hub, and its registry entry points to it.
+The hub names the current authority for each topic, lists superseded reports beside their replacements, and points to open backlog ids without copying their state.
+A scout whose report supersedes another updates that hub's superseded list in the same pass.
+
 ## Add or clone an existing project
 
 Confirm the source URL, local project name, delivery posture, and autonomy posture, stating the resolved default for each rather than asking the captain to invent one.
