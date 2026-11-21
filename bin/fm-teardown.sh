@@ -176,11 +176,31 @@
 # through metadata publication, closing the publication
 # gap; forced secondmate teardown takes it and runs the same checks for every
 # descendant Treehouse slot before touching any child.
+# The refusal names the conflicting task id and its live/dead state
+# (bin/fm-backend.sh's recovery-grade fm_backend_agent_state). The one proven
+# record-scan exception besides a reassigned claim is a superseded record on a
+# slot with no owner claim: when this task's own endpoint is not alive, the
+# OTHER task's endpoint IS alive, and that other task's spawn_gen is a later
+# same-host epoch than this task's own, the slot is treated exactly like a
+# claim naming that other task - records-only, every slot step skipped. A slot
+# this task still claims never takes that exception, and every less certain
+# match - both sides alive, both dead, an ambiguous/unreadable read, or an
+# unordered spawn_gen pair - remains a plain refusal.
 # These refusals are not relaxed by --force: --force authorizes discarding THIS
 # task's unlanded work, never another task's live work. Nothing of this task's
 # own is removed by a refusal; reconcile whichever record is wrong and re-run.
 # Orca is not a pool slot and proves its path through
 # require_orca_worktree_path_match instead.
+# The same reused-slot hazard applies to the recorded window/pane, not just
+# the worktree (Herdr and similar backends reuse small numeric workspace/pane
+# ids across tasks). Before closing or killing this task's own endpoint,
+# teardown separately refuses when another same-backend task record names the
+# same window=, naming that task's id and live/dead state exactly as the
+# worktree refusal does. That check has no proven-supersession skip yet -
+# safely finishing a stale record's cleanup past a live window collision needs
+# the Herdr close path's own "confirmed gone" gate reworked first, which is a
+# separate, self-contained change - so any window collision, proven or not,
+# still refuses.
 # Orca tasks use the same safety checks, then close the recorded terminal and
 # remove the recorded worktree through `orca worktree rm`; teardown never guesses
 # an Orca target from ambient CLI state.
@@ -2670,9 +2690,71 @@ collect_local_firstmate_states() {
   TREEHOUSE_OWNER_STATES=("${FM_LOCAL_FIRSTMATE_STATES[@]}")
 }
 
+# collision_agent_state_for_meta: the recovery-grade fm_backend_agent_state
+# verdict (alive/dead/missing/ambiguous/unreadable/unverified) for a FOREIGN
+# task's own recorded endpoint, read raw from its meta rather than through
+# fm_backend_validate_task_endpoint (a malformed foreign record must never
+# abort our own teardown; it just reads as unreadable/unverified).
+collision_agent_state_for_meta() {  # <meta-file>
+  local meta=$1 backend window
+  backend=$(fm_meta_get "$meta" backend)
+  [ -n "$backend" ] || backend=tmux
+  window=$(fm_meta_get "$meta" window)
+  [ -n "$window" ] || { printf 'unreadable'; return 0; }
+  fm_backend_agent_state "$backend" "$window"
+}
+
+# collision_state_label: the plain live/dead word a refusal names for a
+# conflicting task, collapsing fm_backend_agent_state's alive to "live" and its
+# dead/missing to "dead"; anything less certain (ambiguous/unreadable/
+# unverified) is passed through rather than guessed into either bucket.
+collision_state_label() {  # <agent-state>
+  case "$1" in
+    alive) printf 'live' ;;
+    dead|missing) printf 'dead' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# spawn_gen_epoch: the wall-clock second fm-spawn.sh encoded into a
+# s<epoch>.<pid>.<random> incarnation token (bin/fm-spawn.sh's SPAWN_GEN),
+# or a failure when the token predates spawn_gen or is malformed.
+# collect_local_firstmate_states only ever adds THIS machine's own homes
+# (a registry entry is skipped unless SECONDMATE_REGISTRY_REMOTE is 0), so
+# every spawn_gen compared below was minted by this same host's clock - a
+# same-clock ordering, never a cross-host one.
+spawn_gen_epoch() {  # <spawn_gen>
+  local gen=$1 epoch
+  case "$gen" in
+    s[0-9]*) ;;
+    *) return 1 ;;
+  esac
+  epoch=${gen#s}
+  epoch=${epoch%%.*}
+  case "$epoch" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  printf '%s' "$epoch"
+}
+
+# require_exclusive_worktree_slot_record: refuse when another task's meta
+# names this same resolved worktree/home path, UNLESS allow_supersede=1 and
+# the conflict is PROVEN one-sided - the slot carries no owner claim, this
+# record's own endpoint is not alive, the other task's endpoint is confirmed
+# alive, and the other task's spawn_gen is a later same-host epoch than this
+# record's own. That proven case is not a collision to refuse: this record's
+# hold on the slot is superseded, so it sets the same TEARDOWN_SLOT_REASSIGNED
+# determination a claim naming another task does, and teardown_owns_worktree
+# then skips every step that would touch the slot. Every other match -
+# both sides alive, both dead, an unreadable/ambiguous read, or an unordered
+# spawn_gen pair - remains a plain refusal, not relaxed by --force: --force
+# authorizes discarding THIS record's own unlanded work, never deciding which
+# of two conflicting records to believe.
 require_exclusive_worktree_slot_record() {
   local record_meta=$1 record_id=$2 record_state=$3 worktree=$4
+  local record_spawn_gen=$5 record_backend=$6 record_target=$7 allow_supersede=$8
   local slot state_dir other other_id field other_path other_slot
+  local other_agent_state other_spawn_gen record_epoch other_epoch
   slot=$(canonical_existing_dir "$worktree") || return 0
   # A slot whose owner claim names another task was reassigned, so this record's
   # teardown is records-only and touches nothing under it; another record naming
@@ -2695,7 +2777,22 @@ require_exclusive_worktree_slot_record() {
         [ -n "$other_path" ] || continue
         other_slot=$(canonical_existing_dir "$other_path") || continue
         [ "$other_slot" = "$slot" ] || continue
-        echo "REFUSED: task $record_id's recorded worktree $slot is also task $other_id's recorded $field." >&2
+        other_agent_state=$(collision_agent_state_for_meta "$other")
+        if [ "$allow_supersede" = 1 ] && [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ] \
+           && [ "$other_agent_state" = alive ] \
+           && [ "$(fm_backend_agent_state "$record_backend" "$record_target")" != alive ]; then
+          other_spawn_gen=$(fm_meta_get "$other" spawn_gen)
+          if record_epoch=$(spawn_gen_epoch "$record_spawn_gen") \
+             && other_epoch=$(spawn_gen_epoch "$other_spawn_gen") \
+             && [ "$record_epoch" -lt "$other_epoch" ]; then
+            echo "warning: task $record_id's recorded worktree $slot is proven superseded - task $other_id's later, live spawn owns it now; that slot is no longer $record_id's, so its processes and copy are left untouched and only $record_id's own cleanup runs." >&2
+            TEARDOWN_SLOT_REASSIGNED=1
+            TEARDOWN_SLOT_REASSIGNED_TO=$other_id
+            TEARDOWN_SLOT_REASSIGNED_HOME=
+            return 0
+          fi
+        fi
+        echo "REFUSED: task $record_id's recorded worktree $slot is also task $other_id's recorded $field ($other_id is currently $(collision_state_label "$other_agent_state"))." >&2
         echo "Returning that pool slot would kill $other_id's processes and reset its copy, so nothing was changed - not even with --force." >&2
         echo "Reconcile whichever record is wrong (bin/fm-crew-state.sh $record_id; bin/fm-crew-state.sh $other_id), then re-run teardown." >&2
         return 1
@@ -2707,7 +2804,45 @@ require_exclusive_worktree_slot_record() {
 require_exclusive_task_worktree_slot() {
   local slot
   slot=$(teardown_live_slot_path) || return 0
-  require_exclusive_worktree_slot_record "$META" "$ID" "$STATE" "$slot"
+  require_exclusive_worktree_slot_record "$META" "$ID" "$STATE" "$slot" \
+    "$(meta_value "$META" spawn_gen)" "$BACKEND" "$T" 1
+}
+
+# require_exclusive_task_endpoint_window: the same-shape check as the
+# worktree one above, but for the recorded window/pane itself - Herdr and
+# similar backends reuse small numeric workspace/pane ids across tasks, so a
+# long-dead task's window= can read identically to a live task's current one.
+# Orca targets are excluded (its terminal identity is proven through
+# require_orca_worktree_path_match, never this scan), and a secondmate's own
+# runtime lifecycle is owned by its dedicated retirement machinery, not this
+# check. There is no supersession auto-skip here: a proven-safe way to finish
+# reconciling a stale record while leaving the live task's pane untouched
+# needs the Herdr close path's own "confirmed gone" gate reworked first, which
+# is a separate, self-contained change - this check only refuses, exactly as
+# the worktree check did before its supersession path was added.
+require_exclusive_task_endpoint_window() {
+  local state_dir other other_id other_backend other_window other_agent_state
+  [ "$KIND" != secondmate ] || return 0
+  [ "$BACKEND" != orca ] || return 0
+  [ -n "$T" ] || return 0
+  collect_local_firstmate_states "$STATE" || return 1
+  for state_dir in "${TREEHOUSE_OWNER_STATES[@]}"; do
+    for other in "$state_dir"/*.meta; do
+      [ -f "$other" ] && [ ! -L "$other" ] || continue
+      [ "${other##*/}" = "${META##*/}" ] && [ "$other" -ef "$META" ] && continue
+      other_id=$(basename "$other" .meta)
+      other_backend=$(fm_meta_get "$other" backend)
+      [ -n "$other_backend" ] || other_backend=tmux
+      [ "$other_backend" = "$BACKEND" ] || continue
+      other_window=$(fm_meta_get "$other" window)
+      [ -n "$other_window" ] && [ "$other_window" = "$T" ] || continue
+      other_agent_state=$(collision_agent_state_for_meta "$other")
+      echo "REFUSED: task $ID's recorded endpoint $T is also task $other_id's recorded window ($other_id is currently $(collision_state_label "$other_agent_state"))." >&2
+      echo "Closing or killing that endpoint would hit $other_id's live pane instead, so nothing was changed - not even with --force." >&2
+      echo "Reconcile whichever record is wrong (bin/fm-crew-state.sh $ID; bin/fm-crew-state.sh $other_id), then re-run teardown." >&2
+      return 1
+    done
+  done
 }
 
 # Positive slot ownership, read from the claim the task that took the slot wrote
@@ -3323,7 +3458,14 @@ preflight_descendant_treehouse_slots() {
       continue
     fi
     fm_backend_validate_task_endpoint "$meta" "$task_id" || return 1
-    require_exclusive_worktree_slot_record "$meta" "$task_id" "$state" "$worktree" || return 1
+    # allow_supersede=0: a forced secondmate's descendant-removal preflight has
+    # no per-child skip path downstream, so any collision here - proven or not
+    # - still refuses exactly as before rather than half-wiring the
+    # supersession skip into a removal sequence that cannot honor it.
+    require_exclusive_worktree_slot_record "$meta" "$task_id" "$state" "$worktree" \
+      "$(meta_value "$meta" spawn_gen)" \
+      "$FM_BACKEND_VALIDATED_BACKEND" "$FM_BACKEND_VALIDATED_TARGET" 0 \
+      || return 1
     owner_rc=0
     require_owned_worktree_slot_record "$task_id" "$worktree" || owner_rc=$?
     case "$owner_rc" in
@@ -3703,6 +3845,7 @@ remove_secondmate_registry_entry() {
 
 require_exclusive_task_worktree_slot || exit 1
 require_owned_task_worktree_slot || exit 1
+require_exclusive_task_endpoint_window || exit 1
 
 validate_pr_poll_cleanup "$STATE" "$ID" || exit 1
 
