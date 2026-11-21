@@ -236,7 +236,7 @@ test_forge_selection_renders_correct_cli() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-default some-proj --mode direct-PR >/dev/null 2>&1 \
     || fail "a ship brief with no --forge should still scaffold"
   brief="$home/data/brief-forge-default/brief.md"
-  assert_grep "3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations." "$brief" \
+  assert_grep "3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen" "$brief" \
     "a brief with no --forge must render the exact pre-existing gh-axi Rule 3 line"
   # shellcheck disable=SC2016 # Backticks are literal generated brief text.
   assert_grep 'open a PR with `gh-axi`' "$brief" \
@@ -247,7 +247,7 @@ test_forge_selection_renders_correct_cli() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-forgejo some-proj --mode direct-PR --forge forgejo >/dev/null 2>&1 \
     || fail "--forge forgejo should scaffold a direct-PR ship brief"
   brief="$home/data/brief-forge-forgejo/brief.md"
-  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations." "$brief" \
+  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen" "$brief" \
     "--forge forgejo must render the tea Rule 3 line"
   # shellcheck disable=SC2016 # Backticks are literal generated brief text.
   assert_grep 'open a PR with `tea`' "$brief" \
@@ -268,7 +268,7 @@ test_forge_selection_renders_correct_cli() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-forge-nm some-proj --mode no-mistakes --forge forgejo >/dev/null 2>&1 \
     || fail "--forge forgejo should scaffold a no-mistakes ship brief"
   brief="$home/data/brief-forge-nm/brief.md"
-  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations." "$brief" \
+  assert_grep "3. Use tea for Forgejo operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen" "$brief" \
     "a no-mistakes --forge forgejo brief must render the tea Rule 3 line"
   grep -qx "Delivery contract: mode=no-mistakes forge=forgejo" "$brief" \
     || fail "a no-mistakes --forge forgejo brief must mark the delivery contract line"
@@ -642,6 +642,95 @@ test_ship_project_memory_wording() {
   assert_grep "A correction edits only the wrong text: do not run \`$ROOT/bin/fm-ensure-agents-md.sh\`" "$brief" \
     "project-memory contract no longer forbids the ensure helper on a correction"
   pass "fm-brief.sh: ship project-memory wording bounds edits to corrections of wrong information"
+}
+
+# The standing test-discipline section must reach every ship delivery mode
+# exactly once, sit between the numbered Rules list and the inbox section, and
+# never reach the scout scaffold (a scout's deliverable is a report, not tests).
+test_ship_test_discipline_section() {
+  local home id brief mode rules_line discipline_line inbox_line count
+  home="$TMP_ROOT/test-discipline-home"
+  mkdir -p "$home/data"
+  for mode in no-mistakes direct-PR local-only; do
+    id="brief-discipline-$(printf '%s' "$mode" | tr '[:upper:]' '[:lower:]')"
+    FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode "$mode" >/dev/null 2>&1
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$mode brief was not scaffolded"
+    assert_grep "# Test discipline" "$brief" "$mode brief is missing the test-discipline section header"
+    assert_grep "not every code path you happen to touch along the way" "$brief" \
+      "$mode brief lost the acceptance-criteria-first framing"
+    assert_grep "treat that list as a ceiling, not a floor" "$brief" \
+      "$mode brief lost the ceiling-not-a-floor guidance for a task's own named test list"
+    assert_grep "Be especially sparing early in a package's life" "$brief" \
+      "$mode brief lost the early-in-a-package's-life guidance"
+
+    count=$(grep -c "^# Test discipline$" "$brief")
+    assert_equals "1" "$count" "$mode brief must render the test-discipline section exactly once"
+
+    rules_line=$(grep -n "^# Rules$" "$brief" | cut -d: -f1)
+    discipline_line=$(grep -n "^# Test discipline$" "$brief" | cut -d: -f1)
+    inbox_line=$(grep -n "^# Firstmate instruction inbox$" "$brief" | cut -d: -f1)
+    [ "$rules_line" -lt "$discipline_line" ] \
+      || fail "$mode brief's test-discipline section must come after the Rules section"
+    [ "$discipline_line" -lt "$inbox_line" ] \
+      || fail "$mode brief's test-discipline section must come before the inbox section"
+  done
+
+  id="brief-discipline-scout"
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
+  brief="$home/data/$id/brief.md"
+  assert_present "$brief" "scout brief was not scaffolded"
+  assert_no_grep "# Test discipline" "$brief" \
+    "scout brief must not carry the ship-only test-discipline section"
+  pass "fm-brief.sh: every ship delivery mode renders the test-discipline section once, in place, and scouts never receive it"
+}
+
+# Worker hygiene and headless-only screen rules must reach both scout and ship
+# scaffolds (including every forge variant) without colliding with rule 8.
+test_worker_hygiene_and_headless_rules() {
+  local home id brief kind forge
+  home="$TMP_ROOT/worker-hygiene-home"
+  mkdir -p "$home/data"
+
+  for kind in ship scout; do
+    id="brief-hygiene-$kind"
+    if [ "$kind" = ship ]; then
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes >/dev/null 2>&1
+    else
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --scout >/dev/null 2>&1
+    fi
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$kind brief was not scaffolded"
+    assert_grep "never leave a completed unit of work uncommitted" "$brief" \
+      "$kind brief missing the commit-early rule"
+    # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+    assert_grep 'Never `git checkout` or `git restore` a file that holds uncommitted work' "$brief" \
+      "$kind brief missing the no-checkout-over-uncommitted-work rule"
+    assert_grep "never background a long command just to idle-wait on a completion notification" "$brief" \
+      "$kind brief missing the no-backgrounded-monitors rule"
+    assert_grep "the paused declaration in rule 4 applies" "$brief" \
+      "$kind brief missing the paused-declaration alignment"
+    # shellcheck disable=SC2016  # single quotes are deliberate: backticks must stay literal
+    assert_grep 'Never `pkill` or `killall` by name or pattern' "$brief" \
+      "$kind brief missing the no-pkill-by-pattern rule"
+    assert_grep "give each dev server its own port" "$brief" \
+      "$kind brief missing the own-port rule"
+    assert_grep "never drive the captain's own screen: test with headless browsers only" "$brief" \
+      "$kind brief missing the headless-only rule"
+  done
+
+  mkdir -p "$home/config"
+  printf 'Use review-tool upload.\n' > "$home/config/external-review.md"
+  for forge in forgejo external; do
+    id="brief-headless-$forge"
+    FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode direct-PR --forge "$forge" >/dev/null 2>&1
+    brief="$home/data/$id/brief.md"
+    assert_present "$brief" "$forge brief was not scaffolded"
+    assert_grep "never drive the captain's own screen: test with headless browsers only" "$brief" \
+      "$forge ship brief missing the headless-only rule"
+  done
+
+  pass "fm-brief.sh: worker hygiene and headless-only rules render across ship, scout, and forge scaffolds"
 }
 
 test_herdr_lab_contract_is_explicit_and_complete() {
@@ -1706,6 +1795,8 @@ test_no_mistakes_dod_green_detection
 test_pr_based_dod_requires_non_draft
 test_ask_user_escalation_format
 test_ship_project_memory_wording
+test_ship_test_discipline_section
+test_worker_hygiene_and_headless_rules
 test_herdr_lab_contract_is_explicit_and_complete
 test_herdr_lab_contract_quotes_foreign_firstmate_path
 test_herdr_lab_omission_is_loud_for_ship_and_scout

@@ -45,6 +45,9 @@
 #   direct-PR    implement -> push + open PR via gh-axi (no pipeline) -> configured merge authority
 #   local-only   implement on branch, stop and report "ready in branch" (no push/PR);
 #                the configured merge authority approves, firstmate merges to local main
+# The mode's definition of done outranks any spec text asking the worker to push or open
+# a PR: a local-only worker stops at "ready in branch", so scaffold work that must
+# open a PR with --mode direct-PR.
 # no-mistakes-prod-only is a registry policy, not a task mode; resolve it to one of
 # the three concrete modes at intake before calling this script.
 # --branch-prefix <prefix> optionally overrides the ship branch's "fm/" prefix, so
@@ -116,6 +119,9 @@
 # infrastructure every lane shares - the no-mistakes daemon and the worktree pool
 # their own slot came from - so ship and scout cannot drift apart. A secondmate
 # charter omits it: that home allocates and returns slots for its own crewmates.
+# Both crewmate scaffolds likewise share one worker-hygiene string: commit early
+# and restore temporary edits from a commit, run long commands in the
+# foreground, and never pkill or killall by pattern.
 # --mode, --forge, --shape, and --pr are refused on scout and secondmate scaffolds: a
 # scout's deliverable is a report rather than a merge, and a charter is not a
 # delivery contract.
@@ -139,6 +145,10 @@
 # additions of missing knowledge. A correction edits only the wrong text and
 # never runs fm-ensure-agents-md.sh, whose inserted sections and created
 # pointer file are themselves additions.
+# Ship tasks also carry a standing test-discipline section: test only the named
+# acceptance criteria and load-bearing invariants, skip smoke/redundant/trivial
+# tests, and stay especially sparing early in a package's life. Scout scaffolds
+# omit it; a scout's deliverable is a report, not tests.
 # Scaffolds carry no role scope: fm-spawn.sh supplies fm_brief_worker_role from
 # fm-dod-lib.sh to every ship/scout launch brief, so this file never becomes a
 # second owner of a contract that must stay current across relaunches.
@@ -337,11 +347,11 @@ if [ "$KIND" = ship ]; then
   # forge-CLI rule names it instead of gh-axi; an external review tool has no
   # forge CLI at all; every other forge keeps gh-axi.
   if [ "$FORGE" = forgejo ]; then
-    FORGE_RULE_LINE="Use tea for Forgejo operations and chrome-devtools-axi for browser operations."
+    FORGE_RULE_LINE="Use tea for Forgejo operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen: test with headless browsers only, and never use osascript or System Events keystrokes, open app windows, attach chrome-devtools-axi to the captain's own Chrome, or launch a headed browser."
   elif [ "$FORGE" = external ]; then
-    FORGE_RULE_LINE="Publish only through the review tool your Definition of done names, and use chrome-devtools-axi for browser operations."
+    FORGE_RULE_LINE="Publish only through the review tool your Definition of done names, and use chrome-devtools-axi for browser operations, but never drive the captain's own screen: test with headless browsers only, and never use osascript or System Events keystrokes, open app windows, attach chrome-devtools-axi to the captain's own Chrome, or launch a headed browser."
   else
-    FORGE_RULE_LINE="Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations."
+    FORGE_RULE_LINE="Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen: test with headless browsers only, and never use osascript or System Events keystrokes, open app windows, attach chrome-devtools-axi to the captain's own Chrome, or launch a headed browser."
   fi
 elif [ "$FORGE_SET" -eq 1 ] || [ "$SHAPE_SET" -eq 1 ] || [ "$PR_TEXT_SET" -eq 1 ]; then
   echo "error: --forge, --shape, and --pr apply only to ship briefs; a scout delivers a report and a secondmate charter is not a delivery contract" >&2
@@ -688,6 +698,18 @@ IFS= read -r -d '' SHARED_NO_CD_RULE <<'EOF' || true
 EOF
 SHARED_NO_CD_RULE=${SHARED_NO_CD_RULE%$'\n'}
 
+# Ship and scout share the same worker-hygiene rules after the shell-path rule,
+# so the two scaffolds cannot drift apart.
+IFS= read -r -d '' WORKER_HYGIENE_RULES <<'EOF' || true
+9. Commit meaningful increments as you go; never leave a completed unit of work uncommitted while you move on or wait on anything - an uncommitted change is the only copy, and an interrupted worker loses it.
+   Before any temporary edit (debug logging, a formatter run), commit the file or copy it aside, and undo the edit by restoring from that commit or copy.
+   Never `git checkout` or `git restore` a file that holds uncommitted work: it silently wipes every real change in it, so diff first.
+10. Run builds and test suites in the foreground, or poll with a bounded command that returns on its own; never background a long command just to idle-wait on a completion notification, and never fill turns with no-op waits like `true`, `jobs`, or `echo "still waiting"`.
+    Where a tracked background job is genuinely needed, the paused declaration in rule 4 applies.
+11. Never `pkill` or `killall` by name or pattern - it matches every worker on the machine whose command line mentions the name. Stop only the exact process ids you started, and give each dev server its own port.
+EOF
+WORKER_HYGIENE_RULES=${WORKER_HYGIENE_RULES%$'\n'}
+
 if [ -n "$BASE_BRANCH" ]; then
   SETUP_BASE="You are in a disposable git worktree of $REPO, at a detached HEAD on a clean copy of its base branch.
 Base branch: $BASE_BRANCH"
@@ -717,7 +739,7 @@ The report is the only thing that survives, so anything worth keeping must be in
 # Rules
 1. Never push to any remote and never open a PR.
 2. Stay inside this worktree; outside it, write only the report and status file below, except for the task's empty-inventory attestation through \`fm-captain-hold.sh complete --none\`, exactly as specified under Definition of done.
-3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations.
+3. Use gh-axi for GitHub operations and chrome-devtools-axi for browser operations, but never drive the captain's own screen: test with headless browsers only, and never use osascript or System Events keystrokes, open app windows, attach chrome-devtools-axi to the captain's own Chrome, or launch a headed browser.
 4. Report status by appending one line:
    \`$STATUS_APPEND\`
    States: working, needs-decision, blocked, $PAUSED_VERB, done, failed.
@@ -736,6 +758,7 @@ $CREWMATE_PAUSE_INSTRUCTIONS
    Firstmate's reply normally writes that closing line at answer time; when a blocker or wait clears WITHOUT a firstmate reply, append \`resolved [at=<epoch>]: {how it cleared}\` yourself (same \`[key=<slug>]\` if you opened it with one) as you resume.
 $SHARED_INFRA_RULE
 $SHARED_NO_CD_RULE
+$WORKER_HYGIENE_RULES
 
 $WAIT_BLOCK$INBOX_SECTION
 
@@ -821,6 +844,14 @@ $ASK_USER_BLOCK
    Firstmate's reply normally writes that closing line at answer time; when a blocker or wait clears WITHOUT a firstmate reply, append \`resolved [at=<epoch>]: {how it cleared}\` yourself (same \`[key=<slug>]\` if you opened it with one) as you resume.
 $SHARED_INFRA_RULE
 $SHARED_NO_CD_RULE
+$WORKER_HYGIENE_RULES
+
+# Test discipline
+Test the acceptance criteria and load-bearing invariants the task actually names, not every code path you happen to touch along the way.
+Skip smoke tests, redundant regression tests, and a test for a trivial getter/accessor that carries no real logic.
+When the task or a linked plan already names its own specific test list, treat that list as a ceiling, not a floor - do not pad past it.
+Favor a few sharp tests that would actually fail if the behavior broke over many tests that mostly restate the implementation.
+Be especially sparing early in a package's life, when the design is still likely to move and every extra test is one more thing to rewrite later.
 
 $WAIT_BLOCK$INBOX_SECTION
 
