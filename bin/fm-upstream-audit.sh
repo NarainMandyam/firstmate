@@ -3,7 +3,8 @@
 # state (outside an optional fetch). Reports ahead/behind counts, classifies
 # each fork-only commit as already-upstream (patch-id match via git cherry) or
 # unique, summarizes changed files by surface, checks working-tree cleanliness,
-# and prints a suggested dated backup branch name.
+# and prints suggested dated backup and sync branch names, each free of any
+# existing local or origin branch of the same name.
 #
 # Designed as the deterministic read-only preflight for the /sync-upstream
 # skill: it never creates branches, rebases, resets, stashes, or pushes.
@@ -20,7 +21,7 @@
 set -eu
 
 usage() {
-  sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 UPSTREAM_REMOTE=""
@@ -151,15 +152,19 @@ else
   WORKTREE_STATE="clean"
 fi
 
+free_branch_name() {  # <base> -> first of <base>, <base>-2, ... absent locally and on origin
+  local base=$1 name=$1 n=2
+  while git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$name" \
+     || git -C "$REPO_ROOT" show-ref --verify --quiet "refs/remotes/origin/$name"; do
+    name="${base}-${n}"
+    n=$((n + 1))
+  done
+  printf '%s' "$name"
+}
+
 TODAY=$(date +%Y-%m-%d)
-BACKUP_BASE="archive/pre-upstream-sync-$TODAY"
-BACKUP_BRANCH=$BACKUP_BASE
-suffix=2
-while git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$BACKUP_BRANCH" \
-   || git -C "$REPO_ROOT" show-ref --verify --quiet "refs/remotes/origin/$BACKUP_BRANCH"; do
-  BACKUP_BRANCH="${BACKUP_BASE}-${suffix}"
-  suffix=$((suffix + 1))
-done
+BACKUP_BRANCH=$(free_branch_name "archive/pre-upstream-sync-$TODAY")
+SYNC_BRANCH=$(free_branch_name "sync/upstream-$TODAY")
 
 echo "repo: $REPO_ROOT"
 echo "upstream: $UPSTREAM_REMOTE/$UPSTREAM_BRANCH ($UPSTREAM_SHA) $UPSTREAM_URL"
@@ -168,6 +173,7 @@ echo "merge-base: $MERGE_BASE_SHORT"
 echo "status: $STATUS (ahead=$AHEAD behind=$BEHIND)"
 echo "worktree: $WORKTREE_STATE"
 echo "backup-branch: $BACKUP_BRANCH"
+echo "sync-branch: $SYNC_BRANCH"
 
 echo ""
 echo "commits:"

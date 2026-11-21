@@ -38,8 +38,29 @@ test_up_to_date_fork_reports_clean_and_no_commits() {
   assert_contains "$out" "status: up-to-date (ahead=0 behind=0)" "expected up-to-date status"
   assert_contains "$out" "worktree: clean" "expected clean worktree"
   assert_contains "$out" "backup-branch: archive/pre-upstream-sync-" "missing suggested backup branch"
+  assert_contains "$out" "sync-branch: sync/upstream-" "missing suggested sync branch"
   assert_contains "$out" "  none" "expected no fork-only commits"
   pass "fm-upstream-audit.sh: up-to-date fork reports clean status and zero fork commits"
+}
+
+test_suggested_branch_names_skip_existing_local_and_origin_branches() {
+  local dir fork out today
+  dir="$TMP_ROOT/branch-collisions"
+  init_upstream_and_fork "$dir"
+  fork="$dir/fork"
+  today=$(date +%Y-%m-%d)
+
+  git -C "$fork" branch "archive/pre-upstream-sync-$today"
+  git -C "$fork" branch "sync/upstream-$today"
+  git -C "$fork" push -q origin "sync/upstream-$today"
+  git -C "$fork" branch -D -q "sync/upstream-$today"
+  git -C "$fork" branch "sync/upstream-$today-2"
+
+  out=$("$fork/bin/fm-upstream-audit.sh" --no-fetch 2>&1) \
+    || fail "audit failed with existing branches: $out"
+  assert_contains "$out" "backup-branch: archive/pre-upstream-sync-$today-2" "backup name did not skip local branch"
+  assert_contains "$out" "sync-branch: sync/upstream-$today-3" "sync name did not skip origin and local branches"
+  pass "fm-upstream-audit.sh: suggested backup and sync branch names skip existing local and origin branches"
 }
 
 test_classifies_already_upstream_and_unique_commits_and_surfaces() {
@@ -115,5 +136,6 @@ test_config_upstream_remote_and_dirty_worktree_and_missing_remote() {
 }
 
 test_up_to_date_fork_reports_clean_and_no_commits
+test_suggested_branch_names_skip_existing_local_and_origin_branches
 test_classifies_already_upstream_and_unique_commits_and_surfaces
 test_config_upstream_remote_and_dirty_worktree_and_missing_remote

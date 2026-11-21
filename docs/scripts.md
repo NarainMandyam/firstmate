@@ -23,7 +23,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-lavish-url.sh`       | Capture a website into an armed Lavish review and route its feedback to a project backlog |
 | `fm-secondmate-reconcile.sh` | Queue Bearings reconcile requests for later supervision delivery and ask each mismatched home through its durable inbox with a per-home cooldown |
 | `fm-update.sh`           | Guarded self-update of firstmate and local or remote secondmate homes, reconciling redundant divergence and classifying every live mate left on the target commit for restart or fallback nudge |
-| `fm-upstream-audit.sh`   | Read-only audit of a personal firstmate fork against its upstream remote (ahead/behind, patch-equivalent vs unique commits, touched surfaces, and backup branch name) |
+| `fm-upstream-audit.sh`   | Read-only audit of a personal firstmate fork against its upstream remote (ahead/behind, patch-equivalent vs unique commits, touched surfaces, and backup and sync branch names) |
 | `fm-secondmate-restart.sh` | Persist open conversational work, then restart eligible second mates or report the fallback outcome |
 | `fm-secondmate-restart-lib.sh` | Shared second-mate restart capability and persistence-request contract |
 | `fm-on.sh`               | Execute one tracked Firstmate command in a configured remote secondmate home, using its job worker except for the doctor bootstrap |
